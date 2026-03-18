@@ -1,5 +1,92 @@
-import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// ─── GLOBAL STYLES ────────────────────────────────────────────────────────────
+const GLOBAL_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { font-family: 'DM Sans', sans-serif !important; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(249,115,22,.35); border-radius: 99px; }
+  .cd-sidebar {
+    width: 252px; flex-shrink: 0; height: 100vh;
+    position: sticky; top: 0; display: flex; flex-direction: column;
+    transition: transform .32s cubic-bezier(.4,0,.2,1);
+  }
+  .cd-overlay { display: none; }
+  .mobile-menu-btn { display: none !important; }
+  .cd-topbar-search { display: flex !important; }
+  .cd-topbar-newbtn { display: flex !important; }
+  @media (max-width: 768px) {
+    .cd-sidebar {
+      position: fixed !important; top: 0; left: 0; bottom: 0; z-index: 200;
+      transform: translateX(-100%) !important; width: 280px !important;
+    }
+    .cd-sidebar.open { transform: translateX(0) !important; }
+    .cd-overlay { display: block; position: fixed; inset: 0; z-index: 199; background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
+    .mobile-menu-btn { display: flex !important; }
+    .cd-topbar-search { display: none !important; }
+    .cd-topbar-newbtn { display: none !important; }
+    .kpi-grid { grid-template-columns: repeat(2,1fr) !important; gap: 10px !important; }
+    .dash-cols { grid-template-columns: 1fr !important; }
+    .two-cols  { grid-template-columns: 1fr !important; }
+    .cd-content { padding: 12px !important; gap: 12px !important; }
+    .cd-topbar  { padding: 10px 14px !important; }
+    .cd-footer  { padding: 7px 14px !important; }
+  }
+  @keyframes pageIn {
+    from { opacity:0; transform: translateY(14px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  .kpi-card {
+    transition: transform .22s cubic-bezier(.4,0,.2,1), box-shadow .22s !important;
+    position: relative; overflow: hidden;
+  }
+  .kpi-card::before {
+    content:''; position:absolute; inset:0; opacity:0;
+    background: linear-gradient(135deg, rgba(249,115,22,.09) 0%, transparent 65%);
+    transition: opacity .2s;
+  }
+  .kpi-card:hover::before { opacity:1; }
+  .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(249,115,22,.14), 0 4px 16px rgba(0,0,0,.09) !important; }
+  .card-lift {
+    transition: transform .2s cubic-bezier(.4,0,.2,1), box-shadow .2s !important;
+  }
+  .card-lift:hover { transform: translateY(-2px); box-shadow: 0 10px 36px rgba(0,0,0,.1) !important; }
+  .glow-btn {
+    position: relative; overflow: hidden;
+    transition: transform .15s, box-shadow .15s !important;
+  }
+  .glow-btn::after {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+    transform: translateX(-110%); transition: transform .5s;
+  }
+  .glow-btn:hover::after { transform: translateX(110%); }
+  .glow-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(249,115,22,.45) !important; }
+  .glow-btn:active { transform: scale(.97); }
+  .nav-btn { transition: background .15s, color .15s, transform .1s !important; }
+  .nav-btn:active { transform: scale(.96); }
+`;
+
+function GlobalStyles() {
+  useEffect(() => {
+    const el = document.createElement('style');
+    el.textContent = GLOBAL_CSS;
+    document.head.appendChild(el);
+    return () => document.head.removeChild(el);
+  }, []);
+  return null;
+}
+
+const pageV = {
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0, transition: { duration: .32, ease: [.4,0,.2,1] } },
+  exit:    { opacity: 0, y: -8, transition: { duration: .18 } },
+};
+const listV  = { animate: { transition: { staggerChildren: .06 } } };
+const itemV  = { initial: { opacity:0, y:10 }, animate: { opacity:1, y:0, transition: { duration:.28, ease:[.4,0,.2,1] } } };
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar,
   CartesianGrid, XAxis, YAxis, Tooltip, LineChart, Line, PieChart, Pie, Cell,
@@ -29,23 +116,24 @@ const C = {
 function tk(theme) {
   const d = theme === 'dark';
   return {
-    bg: d ? C.darkBg : C.slate50,
-    card: d ? C.darkCard : '#ffffff',
-    alt: d ? C.darkAlt : C.slate50,
-    border: d ? C.darkBorder : C.slate200,
-    borderSoft: d ? '#252535' : C.slate100,
-    text: d ? '#f1f5f9' : C.slate900,
-    muted: d ? C.slate400 : C.slate500,
-    faint: d ? C.slate500 : '#94a3b8',
-    sidebar: d ? '#07070d' : '#ffffff',
-    topbar: d ? 'rgba(9,9,15,.93)' : 'rgba(255,255,255,.96)',
-    hover: d ? '#1a1a28' : C.slate50,
-    activeNav: d ? '#1e1e2e' : C.orangeLight,
+    bg: d ? '#07070e' : '#f5f5f7',
+    card: d ? '#0e0e18' : '#ffffff',
+    alt: d ? '#13131f' : '#f8f8fb',
+    border: d ? '#1d1d2e' : '#e4e4ec',
+    borderSoft: d ? '#191928' : '#ececf5',
+    text: d ? '#f0f0f8' : '#0d0d14',
+    muted: d ? '#888aaa' : '#606278',
+    faint: d ? '#4a4c68' : '#a0a2b8',
+    sidebar: d ? '#060610' : '#ffffff',
+    topbar: d ? 'rgba(6,6,16,.94)' : 'rgba(255,255,255,.95)',
+    hover: d ? '#151524' : '#f2f2f9',
+    activeNav: d ? '#1a1a2e' : '#fff4ec',
     activeText: d ? '#ffffff' : C.orangeDark,
-    activeBorder: d ? '#2d2d45' : C.orangeMid,
+    activeBorder: d ? '#2e2e50' : C.orangeMid,
     accent: d ? '#fb923c' : C.orangeDark,
-    grid: d ? '#1e293b' : '#f1f5f9',
-    tooltip: d ? '#0f172a' : '#ffffff',
+    grid: d ? '#1a1a2e' : '#f0f0f8',
+    tooltip: d ? '#0a0a18' : '#ffffff',
+    font: "'DM Sans', -apple-system, sans-serif",
   };
 }
 
@@ -77,9 +165,12 @@ const CDLogo = ({ size = 36 }) => (
 // ─── COMPONENTI BASE ──────────────────────────────────────────────────────────
 function Btn({ children, onClick, variant = 'solid', size = 'sm', theme = 'light', style: extra = {} }) {
   const T = tk(theme);
-  const base = { display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5, borderRadius:10, fontWeight:700, cursor:'pointer', fontFamily:'inherit', border:'none', outline:'none', transition:'opacity .15s', padding: size === 'sm' ? '5px 12px' : '8px 16px', fontSize: size === 'sm' ? 12 : 13 };
-  const vars = { solid: { background: C.orange, color: '#fff' }, outline: { background: theme === 'dark' ? '#020617' : '#fff', color: T.muted, border: `1px solid ${T.border}` } };
-  return <button onClick={onClick} style={{ ...base, ...vars[variant] || vars.solid, ...extra }} onMouseEnter={e => e.currentTarget.style.opacity = '.75'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{children}</button>;
+  const base = { display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5, borderRadius:10, fontWeight:700, cursor:'pointer', fontFamily:T.font, border:'none', outline:'none', padding: size === 'sm' ? '6px 13px' : '9px 18px', fontSize: size === 'sm' ? 12 : 13, letterSpacing:'.01em' };
+  const vars = {
+    solid: { background: `linear-gradient(135deg, ${C.orange} 0%, ${C.orangeDark} 100%)`, color: '#fff', boxShadow:'0 2px 12px rgba(249,115,22,.28)' },
+    outline: { background: theme === 'dark' ? 'rgba(255,255,255,.04)' : '#fff', color: T.muted, border: `1px solid ${T.border}` }
+  };
+  return <button className={variant === 'solid' ? 'glow-btn' : ''} onClick={onClick} style={{ ...base, ...vars[variant] || vars.solid, ...extra }}>{children}</button>;
 }
 
 function Tag({ children, tone = 'default' }) {
@@ -96,20 +187,21 @@ function ASwitch({ checked, onChange }) {
   return <div onClick={() => onChange(!checked)} style={{ width:40, height:22, borderRadius:11, cursor:'pointer', position:'relative', background: checked ? C.orange : 'rgba(148,163,184,.3)', transition:'background .2s', flexShrink:0 }}><div style={{ position:'absolute', top:3, left: checked ? 20 : 3, width:16, height:16, borderRadius:8, background:'#fff', transition:'left .2s', boxShadow:'0 1px 4px rgba(0,0,0,.25)' }}/></div>;
 }
 
-function Box({ theme, children, alt = false, style: extra = {} }) {
+function Box({ theme, children, alt = false, style: extra = {}, lift = false }) {
   const T = tk(theme);
-  return <div style={{ background: alt ? T.alt : T.card, border:`1px solid ${alt ? T.borderSoft : T.border}`, borderRadius: alt ? 12 : 16, overflow:'hidden', ...extra }}>{children}</div>;
+  return <div className={lift ? 'card-lift' : ''} style={{ background: alt ? T.alt : T.card, border:`1px solid ${alt ? T.borderSoft : T.border}`, borderRadius: alt ? 12 : 16, overflow:'hidden', ...extra }}>{children}</div>;
 }
 
 function Sec({ title, subtitle, action, children, theme, icon: Icon = Layers3 }) {
   const T = tk(theme);
   return (
-    <Box theme={theme}>
-      <div style={{ padding:'15px 20px 11px', borderBottom:`1px solid ${T.border}`, display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
+    <Box theme={theme} lift>
+      <div style={{ padding:'14px 20px 11px', borderBottom:`1px solid ${T.border}`, display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, position:'relative' }}>
+        <div style={{ position:'absolute', bottom:0, left:20, width:40, height:2, borderRadius:2, background:`linear-gradient(90deg, ${C.orange}, transparent)` }}/>
         <div>
-          <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'rgba(249,115,22,.1)', border:'1px solid rgba(249,115,22,.2)', borderRadius:9, padding:'4px 10px', marginBottom: subtitle ? 4 : 0 }}>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'rgba(249,115,22,.09)', border:'1px solid rgba(249,115,22,.18)', borderRadius:9, padding:'4px 10px', marginBottom: subtitle ? 4 : 0 }}>
             <Icon size={13} color={T.accent}/>
-            <span style={{ fontSize:13, fontWeight:700, color:T.accent }}>{title}</span>
+            <span style={{ fontSize:13, fontWeight:700, color:T.accent, fontFamily:"'Syne', sans-serif", letterSpacing:'-.01em' }}>{title}</span>
           </div>
           {subtitle && <div style={{ fontSize:11, color:T.muted, marginTop:3 }}>{subtitle}</div>}
         </div>
@@ -122,7 +214,15 @@ function Sec({ title, subtitle, action, children, theme, icon: Icon = Layers3 })
 
 function Met({ label, value, icon: Icon, theme }) {
   const T = tk(theme);
-  return <Box theme={theme} alt style={{ padding:14 }}><div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}><span style={{ fontSize:11, color:T.muted }}>{label}</span><Icon size={13} color={T.accent}/></div><div style={{ fontSize:17, fontWeight:700, color:T.text }}>{value}</div></Box>;
+  return (
+    <div className="kpi-card" style={{ background: T.alt, border:`1px solid ${T.borderSoft}`, borderRadius:12, padding:14 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+        <span style={{ fontSize:10, color:T.muted, fontWeight:600, letterSpacing:'.04em', textTransform:'uppercase' }}>{label}</span>
+        <div style={{ background:'rgba(249,115,22,.1)', borderRadius:7, padding:5 }}><Icon size={12} color={T.accent}/></div>
+      </div>
+      <div style={{ fontSize:18, fontWeight:700, color:T.text, fontFamily:"'Syne', sans-serif", letterSpacing:'-.02em' }}>{value}</div>
+    </div>
+  );
 }
 
 function Tbl({ columns, rows, theme }) {
@@ -221,22 +321,20 @@ const ML = {dashboard:'Dashboard',reporting:'Reporting',cashflow:'Cash Flow',crm
 function Dashboard({ theme }) {
   const T = tk(theme);
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:12 }}>
-        {KPIS.map(k => { const I = k.icon; return (
-          <Box key={k.label} theme={theme} style={{ padding:18 }}>
-            <div style={{ padding:18, display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-              <div>
-                <div style={{ fontSize:11, color:T.muted, marginBottom:8 }}>{k.label}</div>
-                <div style={{ fontSize:24, fontWeight:800, color:T.text }}>{k.value}</div>
-                <div style={{ fontSize:11, color:C.green, marginTop:4, fontWeight:600 }}>{k.delta}</div>
-              </div>
-              <div style={{ background:'rgba(249,115,22,.1)', border:'1px solid rgba(249,115,22,.2)', borderRadius:10, padding:8 }}><I size={16} color={T.accent}/></div>
+    <motion.div variants={listV} initial="initial" animate="animate" style={{ display:'flex', flexDirection:'column', gap:20 }}>
+      <motion.div variants={listV} className="kpi-grid" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:12 }}>
+        {KPIS.map((k,i) => { const I = k.icon; return (
+          <motion.div key={k.label} variants={itemV} className="kpi-card" style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:16, padding:20, display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+            <div>
+              <div style={{ fontSize:10, color:T.muted, marginBottom:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'.05em' }}>{k.label}</div>
+              <div style={{ fontSize:26, fontWeight:700, color:T.text, fontFamily:"'Syne', sans-serif", letterSpacing:'-.03em', lineHeight:1 }}>{k.value}</div>
+              <div style={{ fontSize:11, color:C.green, marginTop:6, fontWeight:600 }}>{k.delta}</div>
             </div>
-          </Box>
+            <div style={{ background:'linear-gradient(135deg, rgba(249,115,22,.15), rgba(249,115,22,.05))', border:'1px solid rgba(249,115,22,.2)', borderRadius:12, padding:10 }}><I size={18} color={T.accent}/></div>
+          </motion.div>
         );})}
-      </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1.5fr 1fr', gap:16 }}>
+      </motion.div>
+      <motion.div variants={itemV} className="dash-cols" style={{ display:'grid', gridTemplateColumns:'1.5fr 1fr', gap:16 }}>
         <Sec title="Controllo direzionale" subtitle="Economico, operativo e commerciale" theme={theme} icon={BarChart3} action={<Btn variant="outline" size="sm" theme={theme}><Download size={11}/>PDF</Btn>}>
           <div style={{ height:210 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -276,14 +374,14 @@ function Dashboard({ theme }) {
             </div>
           </Sec>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
 function Reporting({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:16 }}>
     <Sec title="Analisi ricavi e marginalità" subtitle="Confronto divisioni e redditività" theme={theme} icon={BarChart3} action={<HA primary="Nuovo report" theme={theme}/>}>
       <div style={{ height:230 }}><ResponsiveContainer width="100%" height="100%"><BarChart data={RDIV}><CartesianGrid stroke={T.grid} vertical={false}/><XAxis dataKey="n" stroke={T.faint} tickLine={false} axisLine={false} tick={{fontSize:11}}/><YAxis stroke={T.faint} tickLine={false} axisLine={false} tick={{fontSize:11}}/><Tooltip {...ttS(theme)}/><Bar dataKey="r" radius={[6,6,0,0]} fill={C.orange} name="Ricavi"/><Bar dataKey="m" radius={[6,6,0,0]} fill={C.green} name="Margine"/></BarChart></ResponsiveContainer></div>
       <div style={{ marginTop:12 }}><Tbl theme={theme} columns={['Divisione','Ricavi','Margine']} rows={RDIV.map(r=>[r.n,`${r.r}`,`${r.m}%`])}/></div>
@@ -297,7 +395,7 @@ function Reporting({ theme }) {
 
 function CashFlow({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.35fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.35fr .9fr', gap:16 }}>
     <Sec title="Previsione di cassa" subtitle="Entrate, uscite e saldo netto settimanale" theme={theme} icon={Wallet} action={<HA primary="Aggiorna forecast" theme={theme}/>}>
       <div style={{ height:250 }}><ResponsiveContainer width="100%" height="100%"><LineChart data={CF}><CartesianGrid stroke={T.grid} vertical={false}/><XAxis dataKey="w" stroke={T.faint} tickLine={false} axisLine={false} tick={{fontSize:11}}/><YAxis stroke={T.faint} tickLine={false} axisLine={false} tick={{fontSize:11}}/><Tooltip {...ttS(theme)}/><Line type="monotone" dataKey="e" stroke={C.green} strokeWidth={2.5} dot={false} name="Entrate"/><Line type="monotone" dataKey="u" stroke={C.red} strokeWidth={2.5} dot={false} name="Uscite"/><Line type="monotone" dataKey="s" stroke={C.orange} strokeWidth={2.5} dot={false} name="Saldo"/></LineChart></ResponsiveContainer></div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginTop:12 }}><Met label="Saldo disponibile" value="€ 128.4K" icon={Wallet} theme={theme}/><Met label="Entrate prev. 30g" value="€ 184.7K" icon={CheckCircle2} theme={theme}/><Met label="Uscite prev. 30g" value="€ 96.8K" icon={AlertTriangle} theme={theme}/></div>
@@ -311,7 +409,7 @@ function CashFlow({ theme }) {
 
 function Crm({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.2fr 1fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.2fr 1fr', gap:16 }}>
     <Sec title="Pipeline commerciale" subtitle="Lead, contatti e trattative in corso" theme={theme} icon={Users} action={<HA primary="Nuovo lead" theme={theme}/>}>
       <div style={{ height:190, marginBottom:12 }}><ResponsiveContainer width="100%" height="100%"><BarChart data={CRMP}><CartesianGrid stroke={T.grid} vertical={false}/><XAxis dataKey="stage" stroke={T.faint} tickLine={false} axisLine={false} tick={{fontSize:11}}/><YAxis stroke={T.faint} tickLine={false} axisLine={false} tick={{fontSize:11}}/><Tooltip {...ttS(theme)}/><Bar dataKey="v" radius={[6,6,0,0]} fill={C.orange}/></BarChart></ResponsiveContainer></div>
       <Tbl theme={theme} columns={['Cliente','Stadio','Valore','Resp.']} rows={[['Fam. De Luca','Sopralluogo','€ 96.000','Sara Leone'],['Studio Bianchi','Preventivo','€ 42.300','Comm.'],['Condominio Iris','Lead caldo','€ 210.000','Direzione']]}/>
@@ -324,7 +422,7 @@ function Crm({ theme }) {
 }
 
 function Sopralluoghi({ theme }) {
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Agenda sopralluoghi" subtitle="Tecnici, date, zone ed esito" theme={theme} icon={CalendarDays} action={<HA primary="Nuovo sopralluogo" theme={theme}/>}><Tbl theme={theme} columns={['Cliente','Zona','Tecnico','Data','Esito']} rows={SOPR.map(s=>[s.cli,s.zona,s.tec,s.data,s.esito])}/></Sec>
     <Sec title="KPI sopralluoghi" theme={theme} icon={MapPin}><div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}><Met label="Questa settimana" value="18" icon={CalendarDays} theme={theme}/><Met label="Confermati oggi" value="7" icon={CheckCircle2} theme={theme}/><Met label="Tempo medio offerta" value="1,8 gg" icon={ReceiptText} theme={theme}/><Met label="Conversione" value="34%" icon={Sparkles} theme={theme}/></div></Sec>
   </div>;
@@ -332,7 +430,7 @@ function Sopralluoghi({ theme }) {
 
 function Preventivi({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Preventivi in lavorazione" subtitle="Offerte, probabilità e stato trattativa" theme={theme} icon={FileText} action={<HA primary="Nuovo preventivo" theme={theme}/>}><Tbl theme={theme} columns={['ID','Cliente','Categoria','Valore','Prob.','Stato']} rows={PREV.map(p=>[p.id,p.cli,p.cat,p.val,`${p.prob}%`,p.stato])}/></Sec>
     <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
       <Sec title="Configuratore offerta" theme={theme} icon={Wrench}><div style={{ display:'flex', flexDirection:'column', gap:8 }}>{[{n:'Ristrutturazione bagno',d:'Demolizioni, impianti, posa, sanitari'},{n:'Pacchetto infissi premium',d:'Rilievo, fornitura, posa, smaltimento'},{n:'Pavimentazione completa',d:'Rimozione, rasatura, posa, battiscopa'}].map(item => <Box key={item.n} theme={theme} alt style={{ padding:'10px 14px' }}><div style={{ fontSize:12, fontWeight:600, color:T.text }}>{item.n}</div><div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{item.d}</div></Box>)}</div></Sec>
@@ -343,7 +441,7 @@ function Preventivi({ theme }) {
 
 function Showroom({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Selezioni showroom" subtitle="Prodotti selezionati per cliente e progetto" theme={theme} icon={Sparkles} action={<HA primary="Nuova selezione" theme={theme}/>}><Tbl theme={theme} columns={['Cliente','Progetto','Articolo','Totale','Stato']} rows={[['Fam. De Luca','Bagno master','Mobile lavabo noce 120','€ 1.980','Confermabile'],['Studio Bianchi','Infissi ufficio','Serramento PVC anthracite','€ 12.460','Da listino'],['Giulia Conti','Rivestimenti','Gres Urban Pearl','€ 2.640','Opzione A']]}/></Sec>
     <Sec title="Conversione showroom" theme={theme} icon={CheckCircle2}><div style={{ display:'flex', flexDirection:'column', gap:8 }}>{['Selezione materiali','Conferma varianti','Blocco listino','Ordine cliente','Passaggio a magazzino'].map((step, i) => <Box key={step} theme={theme} alt style={{ padding:'10px 14px', display:'flex', alignItems:'center', gap:10 }}><div style={{ width:22, height:22, borderRadius:11, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, background: i<3?'rgba(249,115,22,.15)':'rgba(148,163,184,.1)', color: i<3?C.orange:T.muted }}>{i+1}</div><span style={{ fontSize:12, color:T.text }}>{step}</span></Box>)}</div></Sec>
   </div>;
@@ -351,7 +449,7 @@ function Showroom({ theme }) {
 
 function Cantieri({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.4fr .8fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.4fr .8fr', gap:16 }}>
     <Sec title="Registro cantieri" subtitle="Commesse attive con avanzamento e criticità" theme={theme} icon={HardHat} action={<HA primary="Nuovo cantiere" theme={theme}/>}>
       <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
         {CANT.map(c => <Box key={c.id} theme={theme} alt style={{ padding:16 }}>
@@ -392,7 +490,7 @@ function Cantieri({ theme }) {
 
 function TaskSal({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Pianificazione Task & SAL" subtitle="Fasi operative, validazioni e avanzamento" theme={theme} icon={CheckSquare} action={<HA primary="Nuovo SAL" theme={theme}/>}><Tbl theme={theme} columns={['ID','Commessa','Fase','Owner','%','Scad.','Stato']} rows={SALT.map(r=>[r.id,r.comm,r.fase,r.owner,`${r.pct}%`,r.scad,r.stato])}/></Sec>
     <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
       <Sec title="Validazioni aperte" theme={theme} icon={ShieldCheck}><div style={{ display:'flex', flexDirection:'column', gap:8 }}>{SALT.map(item => <Box key={item.id} theme={theme} alt style={{ padding:12 }}><div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}><div><div style={{ fontSize:12, fontWeight:600, color:T.text }}>{item.comm}</div><div style={{ fontSize:10, color:T.muted }}>{item.fase}</div></div><Tag tone={item.stato==='Da validare'?'warning':item.stato==='In corso'?'info':'success'}>{item.stato}</Tag></div><PBar value={item.pct}/></Box>)}</div></Sec>
@@ -402,7 +500,7 @@ function TaskSal({ theme }) {
 }
 
 function Squadre({ theme }) {
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Squadre, ore e presenze" subtitle="Disponibilità risorse, ore lavorate e team" theme={theme} icon={Users} action={<HA primary="Nuova assegnazione" theme={theme}/>}><Tbl theme={theme} columns={['Nome','Ruolo','Stato','Ore','Team']} rows={DIP.map(d=>[d.nome,d.ruolo,d.stato,d.ore,d.team])}/></Sec>
     <Sec title="Carico operativo" theme={theme} icon={Wrench}><div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}><Met label="Ore registrate" value="159h" icon={ReceiptText} theme={theme}/><Met label="Assenze aperte" value="2" icon={AlertTriangle} theme={theme}/><Met label="Mezzi prenotati" value="5" icon={Truck} theme={theme}/><Met label="Team attivi" value="6" icon={Users} theme={theme}/></div></Sec>
   </div>;
@@ -410,7 +508,7 @@ function Squadre({ theme }) {
 
 function Documenti({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Archivio documenti" subtitle="Documenti tecnici, amministrativi e allegati" theme={theme} icon={Archive} action={<HA primary="Carica file" theme={theme}/>}><Tbl theme={theme} columns={['Documento','Commessa','Categoria','Versione','Stato']} rows={[['PSC Villa Moretti','CAN-024','Sicurezza','v3','Attivo'],['Contratto Aurora','CAN-031','Commerciale','v1','Firmato'],['Verbale Città Studi','CAN-037','Cantiere','v2','Bozza']]}/></Sec>
     <Sec title="Categorie" theme={theme} icon={Layers3}><div style={{ display:'flex', flexDirection:'column', gap:8 }}>{['Contratti','Capitolati','Sicurezza','Fatture','Foto cantiere'].map(c => <Box key={c} theme={theme} alt style={{ padding:'10px 14px', fontSize:12, fontWeight:600, color:T.text }}>{c}</Box>)}</div></Sec>
   </div>;
@@ -421,7 +519,7 @@ function Calendario({ theme }) {
   const T = tk(theme);
   const evs = CALE.filter(e => e.date === sel);
   const ticoI = { sopr:CalendarDays, cant:HardHat, scad:AlertCircle, fatt:Receipt };
-  return <div style={{ display:'grid', gridTemplateColumns:'1.5fr .8fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.5fr .8fr', gap:16 }}>
     <Sec title="Marzo 2026" subtitle="Pianificazione cantieri, sopralluoghi e scadenze" theme={theme} icon={Calendar} action={<div style={{ display:'flex', gap:6 }}><Btn variant="outline" size="sm" theme={theme} style={{ padding:'3px 8px' }}><ChevronLeft size={13}/></Btn><Btn variant="outline" size="sm" theme={theme} style={{ padding:'3px 8px' }}><ChevronRight size={13}/></Btn></div>}>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:6 }}>{['L','M','M','G','V','S','D'].map((d,i)=><div key={i} style={{ textAlign:'center', fontSize:10, fontWeight:700, color:T.faint, padding:'3px 0' }}>{d}</div>)}</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
@@ -450,7 +548,7 @@ function Calendario({ theme }) {
 
 function Prodotto({ title, subtitle, icon: Icon, reparto, theme }) {
   const rows = MAG.filter(m => reparto==='Tutti'||m.rep===reparto);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title={title} subtitle={subtitle} theme={theme} icon={Icon} action={<HA primary="Nuovo articolo" theme={theme}/>}><Tbl theme={theme} columns={['Articolo','SKU','Disp.','Stato','Reparto']} rows={rows.map(m=>[m.art,m.sku,m.disp,m.stato,m.rep])}/></Sec>
     <Sec title="Contesto reparto" theme={theme} icon={Factory}><div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}><Met label="Articoli attivi" value="124" icon={Package} theme={theme}/><Met label="Sotto scorta" value="8" icon={AlertTriangle} theme={theme}/><Met label="Prenotati" value="21" icon={CheckCircle2} theme={theme}/><Met label="Riordini aperti" value="3" icon={RefreshCcw} theme={theme}/></div></Sec>
   </div>;
@@ -458,7 +556,7 @@ function Prodotto({ title, subtitle, icon: Icon, reparto, theme }) {
 
 function Shopify({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Connettore Shopify" subtitle="Pubblicazione prodotti via API o file Excel/CSV" theme={theme} icon={Store} action={<HA primary="Connetti shop" theme={theme}/>}>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:14 }}><Met label="Prodotti pronti sync" value="38" icon={PackageCheck} theme={theme}/><Met label="Ultimo sync" value="Oggi 09:42" icon={RefreshCcw} theme={theme}/><Met label="Canale" value="Shopify" icon={Store} theme={theme}/></div>
       <Tbl theme={theme} columns={['SKU','Nome','Categoria','Listino','Sync']} rows={[['INF-101','Infisso PVC Premium 2 ante','Infissi','€ 1.240','Pronto'],['BAG-204','Mobile bagno Urban 120','Bagni','€ 990','Bozza'],['PAV-330','Gres Pearl 60x120','Pavimenti','€ 46/mq','Pronto']]}/>
@@ -469,14 +567,14 @@ function Shopify({ theme }) {
 
 function Ordini({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Ordini fornitori" subtitle="Richieste acquisto, stato ordine e consegne" theme={theme} icon={ShoppingCart} action={<HA primary="Nuovo ordine" theme={theme}/>}><Tbl theme={theme} columns={['Ordine','Fornitore','Categoria','Importo','Stato']} rows={ORD.map(o=>[o.id,o.f,o.cat,o.i,o.stato])}/></Sec>
     <Sec title="Approvazioni" theme={theme} icon={CheckCircle2}><div style={{ display:'flex', flexDirection:'column', gap:8 }}>{ORD.map(o=><Box key={o.id} theme={theme} alt style={{ padding:'10px 14px' }}><div style={{ fontSize:12, fontWeight:600, color:T.text }}>{o.id}</div><div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{o.f} · {o.i}</div></Box>)}</div></Sec>
   </div>;
 }
 
 function Fatture({ theme }) {
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Fatture clienti" subtitle="Emissione, stato invio e controllo incassi" theme={theme} icon={Receipt} action={<HA primary="Nuova fattura" theme={theme}/>}><Tbl theme={theme} columns={['Numero','Cliente','Tipo','Importo','Stato']} rows={FATT.map(f=>[f.n,f.cli,f.tipo,f.imp,f.stato])}/></Sec>
     <Sec title="Stato fatturazione" theme={theme} icon={Euro}><div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}><Met label="Da emettere" value="€ 64.2K" icon={Receipt} theme={theme}/><Met label="In scadenza" value="€ 18.9K" icon={AlertTriangle} theme={theme}/><Met label="Incassate" value="€ 91.4K" icon={CheckCircle2} theme={theme}/><Met label="Solleciti" value="3" icon={BellRing} theme={theme}/></div></Sec>
   </div>;
@@ -484,7 +582,7 @@ function Fatture({ theme }) {
 
 function Pagamenti({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Pagamenti fornitori" subtitle="Pianificazione uscite, priorità e scadenze" theme={theme} icon={CreditCard} action={<HA primary="Nuovo pagamento" theme={theme}/>}><Tbl theme={theme} columns={['Fornitore','Data','Importo','Priorità']} rows={PAGF.map(p=>[p.f,p.d,p.i,p.p])}/></Sec>
     <Sec title="Riepilogo uscite" theme={theme} icon={AlertTriangle}><div style={{ display:'flex', flexDirection:'column', gap:8 }}>{['Uscite 7 giorni: € 21.400','Uscite 30 giorni: € 96.800','1 pagamento alta priorità'].map(item=><Box key={item} theme={theme} alt style={{ padding:'10px 14px', fontSize:12, color:T.text }}>{item}</Box>)}</div></Sec>
   </div>;
@@ -492,7 +590,7 @@ function Pagamenti({ theme }) {
 
 function Compliance({ theme }) {
   const T = tk(theme);
-  return <div style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
+  return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.3fr .9fr', gap:16 }}>
     <Sec title="Scadenze compliance" subtitle="DURC, assicurazioni, formazione e sicurezza" theme={theme} icon={ShieldCheck} action={<HA primary="Nuova scadenza" theme={theme}/>}><Tbl theme={theme} columns={['Voce','Scadenza','Responsabile','Stato']} rows={COMP.map(r=>[r.v,r.s,r.r,r.stato])}/></Sec>
     <Sec title="Presidio documentale" theme={theme} icon={Shield}><div style={{ display:'flex', flexDirection:'column', gap:8 }}>{['1 documento urgente','2 rinnovi in corso','0 non conformità bloccanti'].map(item=><Box key={item} theme={theme} alt style={{ padding:'10px 14px', fontSize:12, color:T.text }}>{item}</Box>)}</div></Sec>
   </div>;
@@ -517,68 +615,88 @@ function NotifPanel({ open, onClose, theme }) {
 }
 
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────────
-function Sidebar({ page, setPage, theme, setTheme, activeClient, isAdmin, setView, onLogout }) {
+function Sidebar({ page, setPage, theme, setTheme, activeClient, isAdmin, setView, onLogout, open, onClose }) {
   const T = tk(theme);
   const modules = activeClient?.modules || {};
   const visible = NAV.map(g => ({ ...g, items: g.items.filter(item => modules[item.id] !== false) })).filter(g => g.items.length > 0);
 
-  return <aside style={{ width:252, flexShrink:0, background:T.sidebar, borderRight:`1px solid ${T.border}`, display:'flex', flexDirection:'column', height:'100vh', position:'sticky', top:0, overflowY:'auto' }}>
-    {/* Logo */}
-    <div style={{ padding:'15px 15px 11px', borderBottom:`1px solid ${T.border}`, display:'flex', alignItems:'center', gap:10 }}>
-      <CDLogo size={33}/><div><div style={{ fontSize:14, fontWeight:800, letterSpacing:'-.3px', color:T.text }}>CantiereDigitale</div><div style={{ fontSize:10, color:T.muted }}>{activeClient?.name||'PRISMAos'}</div></div>
-    </div>
-    {/* Client info */}
-    {activeClient && <div style={{ margin:'10px 10px 0', background:T.alt, border:`1px solid ${T.borderSoft}`, borderRadius:12, padding:'10px 12px' }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
-        <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'.1em', color:T.faint }}>Account</span>
-        <span style={{ fontSize:10, fontWeight:700, color:C.orange, background:'rgba(249,115,22,.1)', border:'1px solid rgba(249,115,22,.2)', borderRadius:999, padding:'1px 8px' }}>{activeClient.plan}</span>
-      </div>
-      <div style={{ fontSize:12, fontWeight:700, color:T.text }}>{activeClient.contact}</div>
-      <div style={{ fontSize:10, color:T.muted }}>{activeClient.city}</div>
-    </div>}
-    {/* Nav */}
-    <div style={{ flex:1, overflowY:'auto', padding:'12px 8px', display:'flex', flexDirection:'column', gap:14 }}>
-      {visible.map(group => <div key={group.label}>
-        <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'.14em', color:T.faint, padding:'0 5px', marginBottom:4 }}>{group.label}</div>
-        <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
-          {group.items.map(item => { const Icon = item.icon; const act = page === item.id; return (
-            <button key={item.id} onClick={() => setPage(item.id)} style={{ display:'flex', alignItems:'center', gap:9, padding:'8px 10px', borderRadius:9, border:`1px solid ${act?T.activeBorder:'transparent'}`, background:act?T.activeNav:'transparent', color:act?T.activeText:T.muted, fontSize:12, fontWeight:600, cursor:'pointer', transition:'all .15s', textAlign:'left', width:'100%', fontFamily:'inherit' }}
-              onMouseEnter={e=>{ if(!act){e.currentTarget.style.background=T.hover;e.currentTarget.style.color=T.text;}}}
-              onMouseLeave={e=>{ if(!act){e.currentTarget.style.background='transparent';e.currentTarget.style.color=T.muted;}}}>
-              <Icon size={13} color={act?T.accent:'currentColor'}/><span style={{ flex:1 }}>{item.label}</span>
-              {item.id==='cantieri'&&<span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:999, background:'rgba(249,115,22,.12)', color:C.orange, border:'1px solid rgba(249,115,22,.2)' }}>14</span>}
-              {item.id==='fatture'&&<span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:999, background:'rgba(239,68,68,.12)', color:C.red, border:'1px solid rgba(239,68,68,.2)' }}>3</span>}
-            </button>
-          );})}
+  return <>
+    {open && <div className="cd-overlay" onClick={onClose}/>}
+    <aside className={`cd-sidebar${open ? ' open' : ''}`} style={{ background:T.sidebar, borderRight:`1px solid ${T.border}`, overflowY:'auto' }}>
+      {/* Logo */}
+      <div style={{ padding:'16px 15px 13px', borderBottom:`1px solid ${T.border}`, display:'flex', alignItems:'center', gap:10 }}>
+        <CDLogo size={33}/>
+        <div>
+          <div style={{ fontSize:14, fontWeight:800, letterSpacing:'-.3px', color:T.text, fontFamily:"'Syne', sans-serif" }}>CantiereDigitale</div>
+          <div style={{ fontSize:10, color:T.muted }}>{activeClient?.name||'PRISMAos'}</div>
         </div>
-      </div>)}
-    </div>
-    {/* Footer */}
-    <div style={{ padding:'8px 8px 12px', borderTop:`1px solid ${T.border}`, display:'flex', flexDirection:'column', gap:2 }}>
-      {isAdmin && <button onClick={()=>setView('admin')} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, border:'none', background:'transparent', color:C.orange, fontSize:12, fontWeight:700, cursor:'pointer', width:'100%', fontFamily:'inherit' }}><Crown size={12}/>Admin Panel</button>}
-      <button onClick={()=>setTheme(theme==='dark'?'light':'dark')} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, border:'none', background:'transparent', color:T.muted, fontSize:12, fontWeight:600, cursor:'pointer', width:'100%', fontFamily:'inherit' }}>{theme==='dark'?<SunMedium size={12}/>:<Moon size={12}/>}{theme==='dark'?'Tema chiaro':'Tema scuro'}</button>
-      <button onClick={onLogout} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, border:'none', background:'transparent', color:T.muted, fontSize:12, fontWeight:600, cursor:'pointer', width:'100%', fontFamily:'inherit' }}><X size={12}/>Esci</button>
-      <div style={{ textAlign:'center', fontSize:9, color:T.faint, paddingTop:4 }}>PRISMAos © 2026</div>
-    </div>
-  </aside>;
+        <button onClick={onClose} className="mobile-menu-btn" style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:T.muted, padding:4, display:'none' }}><X size={18}/></button>
+      </div>
+      {/* Client info */}
+      {activeClient && <div style={{ margin:'10px 10px 0', background:`linear-gradient(135deg, rgba(249,115,22,.08), rgba(249,115,22,.03))`, border:`1px solid rgba(249,115,22,.16)`, borderRadius:12, padding:'10px 12px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
+          <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'.1em', color:T.faint }}>Account</span>
+          <span style={{ fontSize:10, fontWeight:700, color:C.orange, background:'rgba(249,115,22,.12)', border:'1px solid rgba(249,115,22,.22)', borderRadius:999, padding:'1px 8px' }}>{activeClient.plan}</span>
+        </div>
+        <div style={{ fontSize:12, fontWeight:700, color:T.text }}>{activeClient.contact}</div>
+        <div style={{ fontSize:10, color:T.muted }}>{activeClient.city}</div>
+      </div>}
+      {/* Nav */}
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 8px', display:'flex', flexDirection:'column', gap:14 }}>
+        {visible.map(group => <div key={group.label}>
+          <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'.16em', color:T.faint, padding:'0 5px', marginBottom:4 }}>{group.label}</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
+            {group.items.map(item => { const Icon = item.icon; const act = page === item.id; return (
+              <button key={item.id} className="nav-btn" onClick={() => { setPage(item.id); onClose(); }} style={{ display:'flex', alignItems:'center', gap:9, padding:'8px 10px', borderRadius:10, border:`1px solid ${act?T.activeBorder:'transparent'}`, background:act?T.activeNav:'transparent', color:act?T.activeText:T.muted, fontSize:12, fontWeight:600, cursor:'pointer', textAlign:'left', width:'100%', fontFamily:T.font }}
+                onMouseEnter={e=>{ if(!act){e.currentTarget.style.background=T.hover;e.currentTarget.style.color=T.text;}}}
+                onMouseLeave={e=>{ if(!act){e.currentTarget.style.background='transparent';e.currentTarget.style.color=T.muted;}}}>
+                <Icon size={13} color={act?T.accent:'currentColor'}/><span style={{ flex:1 }}>{item.label}</span>
+                {item.id==='cantieri'&&<span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:999, background:'rgba(249,115,22,.12)', color:C.orange, border:'1px solid rgba(249,115,22,.2)' }}>14</span>}
+                {item.id==='fatture'&&<span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:999, background:'rgba(239,68,68,.12)', color:C.red, border:'1px solid rgba(239,68,68,.2)' }}>3</span>}
+              </button>
+            );})}
+          </div>
+        </div>)}
+      </div>
+      {/* Footer */}
+      <div style={{ padding:'8px 8px 14px', borderTop:`1px solid ${T.border}`, display:'flex', flexDirection:'column', gap:2 }}>
+        {isAdmin && <button onClick={()=>setView('admin')} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, border:'none', background:'transparent', color:C.orange, fontSize:12, fontWeight:700, cursor:'pointer', width:'100%', fontFamily:T.font }}><Crown size={12}/>Admin Panel</button>}
+        <button onClick={()=>setTheme(theme==='dark'?'light':'dark')} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, border:'none', background:'transparent', color:T.muted, fontSize:12, fontWeight:600, cursor:'pointer', width:'100%', fontFamily:T.font }}>{theme==='dark'?<SunMedium size={12}/>:<Moon size={12}/>}{theme==='dark'?'Tema chiaro':'Tema scuro'}</button>
+        <button onClick={onLogout} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, border:'none', background:'transparent', color:T.muted, fontSize:12, fontWeight:600, cursor:'pointer', width:'100%', fontFamily:T.font }}><X size={12}/>Esci</button>
+        <div style={{ textAlign:'center', fontSize:9, color:T.faint, paddingTop:4 }}>PRISMAos © 2026</div>
+      </div>
+    </aside>
+  </>;
 }
 
 // ─── TOPBAR ───────────────────────────────────────────────────────────────────
-function Topbar({ page, theme, notifOpen, setNotifOpen }) {
+function Topbar({ page, theme, notifOpen, setNotifOpen, onMenuOpen }) {
   const T = tk(theme);
   const meta = META[page] || META.dashboard;
   const unread = NOTS.filter(n => !n.read).length;
-  return <div style={{ position:'sticky', top:0, zIndex:20, background:T.topbar, borderBottom:`1px solid ${T.border}`, backdropFilter:'blur(12px)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
-    <div>
-      <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'.14em', color:T.faint }}>{meta.ey}</div>
-      <div style={{ fontSize:18, fontWeight:800, letterSpacing:'-.4px', lineHeight:1.2, marginTop:2, color:T.text }}>{meta.title}</div>
-      <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{meta.sub}</div>
+  return <div className="cd-topbar" style={{ position:'sticky', top:0, zIndex:20, background:T.topbar, borderBottom:`1px solid ${T.border}`, backdropFilter:'blur(14px)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+      <button className="mobile-menu-btn" onClick={onMenuOpen} style={{ background:'none', border:`1px solid ${T.border}`, borderRadius:9, padding:'7px 8px', cursor:'pointer', color:T.text, display:'none', alignItems:'center', justifyContent:'center' }}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect y="2" width="16" height="1.8" rx=".9" fill="currentColor"/><rect y="7" width="11" height="1.8" rx=".9" fill="currentColor"/><rect y="12" width="14" height="1.8" rx=".9" fill="currentColor"/></svg>
+      </button>
+      <div>
+        <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'.16em', color:T.faint }}>{meta.ey}</div>
+        <div style={{ fontSize:18, fontWeight:800, letterSpacing:'-.5px', lineHeight:1.2, marginTop:1, color:T.text, fontFamily:"'Syne', sans-serif" }}>{meta.title}</div>
+        <div style={{ fontSize:11, color:T.muted, marginTop:1 }}>{meta.sub}</div>
+      </div>
     </div>
     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-      <div style={{ position:'relative' }}><Search size={12} style={{ position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', color:T.faint }}/><input placeholder="Cerca cantieri, clienti…" style={{ background:T.alt, border:`1px solid ${T.border}`, borderRadius:10, padding:'7px 12px 7px 28px', fontSize:12, color:T.text, outline:'none', width:210, fontFamily:'inherit' }}/></div>
-      <Btn size="sm" theme={theme}><Plus size={12}/>Nuovo</Btn>
+      <div className="cd-topbar-search" style={{ position:'relative' }}>
+        <Search size={12} style={{ position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', color:T.faint }}/>
+        <input placeholder="Cerca cantieri, clienti…" style={{ background:T.alt, border:`1px solid ${T.border}`, borderRadius:10, padding:'7px 12px 7px 28px', fontSize:12, color:T.text, outline:'none', width:210, fontFamily:T.font }}/>
+      </div>
+      <div className="cd-topbar-newbtn"><Btn size="sm" theme={theme}><Plus size={12}/>Nuovo</Btn></div>
       <div style={{ position:'relative' }}>
-        <button onClick={()=>setNotifOpen(o=>!o)} style={{ background:T.alt, border:`1px solid ${T.border}`, borderRadius:10, padding:'7px 10px', cursor:'pointer', color:T.text, display:'flex', alignItems:'center' }}><Bell size={14}/>{unread>0&&<span style={{ position:'absolute', top:-3, right:-3, width:16, height:16, background:C.orange, color:'#fff', borderRadius:8, fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{unread}</span>}</button>
+        <button onClick={()=>setNotifOpen(o=>!o)} style={{ background:T.alt, border:`1px solid ${T.border}`, borderRadius:10, padding:'7px 10px', cursor:'pointer', color:T.text, display:'flex', alignItems:'center', transition:'background .15s' }}
+          onMouseEnter={e=>e.currentTarget.style.background=T.hover} onMouseLeave={e=>e.currentTarget.style.background=T.alt}>
+          <Bell size={14}/>
+          {unread>0&&<span style={{ position:'absolute', top:-4, right:-4, width:17, height:17, background:`linear-gradient(135deg,${C.orange},${C.orangeDark})`, color:'#fff', borderRadius:9, fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(249,115,22,.5)' }}>{unread}</span>}
+        </button>
       </div>
     </div>
   </div>;
@@ -651,30 +769,55 @@ function Login({ onLogin, theme }) {
   const [email,setEmail]=useState('');const [pw,setPw]=useState('');const [sp,setSp]=useState(false);const [err,setErr]=useState('');
   const T = tk(theme);
   const doLogin = () => { const u=USERS.find(u=>u.email===email.trim()&&u.pw===pw); u?(setErr(''),onLogin(u)):setErr('Credenziali non valide. Riprova.'); };
-  return <div style={{ minHeight:'100vh', background:T.bg, color:T.text, display:'flex', alignItems:'center', justifyContent:'center', padding:16, fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
-    <div style={{ width:'100%', maxWidth:360 }}>
-      <div style={{ textAlign:'center', marginBottom:28 }}>
-        <div style={{ display:'flex', justifyContent:'center', marginBottom:12 }}><CDLogo size={52}/></div>
-        <div style={{ fontSize:22, fontWeight:800, letterSpacing:'-.5px', color:T.text }}>CantiereDigitale</div>
-        <div style={{ fontSize:12, color:T.muted, marginTop:4 }}>Gestionale professionale per l'edilizia</div>
-      </div>
-      <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:16, padding:24 }}>
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-          <div><label style={{ fontSize:11, fontWeight:700, color:T.muted, display:'block', marginBottom:6 }}>Email</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="la-tua@email.it" onKeyDown={e=>e.key==='Enter'&&doLogin()} style={{ width:'100%', boxSizing:'border-box', background:T.alt, border:`1px solid ${T.border}`, borderRadius:10, padding:'9px 12px', fontSize:13, color:T.text, outline:'none', fontFamily:'inherit' }}/></div>
-          <div><label style={{ fontSize:11, fontWeight:700, color:T.muted, display:'block', marginBottom:6 }}>Password</label><div style={{ position:'relative' }}><input type={sp?'text':'password'} value={pw} onChange={e=>setPw(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==='Enter'&&doLogin()} style={{ width:'100%', boxSizing:'border-box', background:T.alt, border:`1px solid ${T.border}`, borderRadius:10, padding:'9px 36px 9px 12px', fontSize:13, color:T.text, outline:'none', fontFamily:'inherit' }}/><button onClick={()=>setSp(s=>!s)} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:T.muted }}>{sp?<EyeOff size={14}/>:<Eye size={14}/>}</button></div></div>
-          {err&&<div style={{ fontSize:12, color:C.red, textAlign:'center' }}>{err}</div>}
-          <button onClick={doLogin} style={{ width:'100%', background:C.orange, color:'#fff', border:'none', borderRadius:10, padding:'11px 0', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }} onMouseEnter={e=>e.currentTarget.style.opacity='.85'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>Accedi</button>
+  const d = theme === 'dark';
+  return (
+    <div style={{ minHeight:'100vh', background: d
+      ? 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249,115,22,.18) 0%, transparent 70%), #07070e'
+      : 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249,115,22,.12) 0%, transparent 70%), #f5f5f7',
+      color:T.text, display:'flex', alignItems:'center', justifyContent:'center', padding:16, fontFamily:T.font }}>
+      {/* Subtle grid pattern */}
+      <div style={{ position:'fixed', inset:0, backgroundImage:`radial-gradient(circle, ${d?'rgba(249,115,22,.06)':'rgba(249,115,22,.04)'} 1px, transparent 1px)`, backgroundSize:'28px 28px', pointerEvents:'none' }}/>
+      <motion.div initial={{ opacity:0, y:24, scale:.97 }} animate={{ opacity:1, y:0, scale:1 }} transition={{ duration:.45, ease:[.4,0,.2,1] }} style={{ width:'100%', maxWidth:380, position:'relative' }}>
+        <div style={{ textAlign:'center', marginBottom:28 }}>
+          <motion.div initial={{ scale:.8, opacity:0 }} animate={{ scale:1, opacity:1 }} transition={{ delay:.1, duration:.4, ease:[.34,1.56,.64,1] }} style={{ display:'flex', justifyContent:'center', marginBottom:14 }}>
+            <div style={{ background:'linear-gradient(135deg, rgba(249,115,22,.15), rgba(249,115,22,.05))', border:'1px solid rgba(249,115,22,.2)', borderRadius:22, padding:10 }}><CDLogo size={48}/></div>
+          </motion.div>
+          <div style={{ fontSize:28, fontWeight:800, letterSpacing:'-.8px', color:T.text, fontFamily:"'Syne', sans-serif" }}>CantiereDigitale</div>
+          <div style={{ fontSize:13, color:T.muted, marginTop:5 }}>Gestionale professionale per l'edilizia</div>
         </div>
-        <div style={{ marginTop:18, paddingTop:14, borderTop:`1px solid ${T.border}` }}>
-          <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'.12em', color:T.faint, marginBottom:8 }}>Account demo — clicca per compilare</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-            {[{l:'🔑 Admin PRISMAos',e:'admin@prismaos.it',p:'admin2026'},{l:'🏗 EdilCasa S.r.l.',e:'admin@edilcasa.it',p:'edilcasa'},{l:'📐 Geo.co S.r.l.',e:'info@geo.co',p:'geoco'},{l:'🧱 Costruzioni Beta',e:'g.amati@costruzionibeta.com',p:'beta'}].map(u=><button key={u.e} onClick={()=>{setEmail(u.e);setPw(u.p);}} style={{ textAlign:'left', background:T.alt, border:`1px solid ${T.borderSoft}`, borderRadius:8, padding:'7px 10px', fontSize:11, color:T.muted, cursor:'pointer', width:'100%', fontFamily:'inherit' }}><b style={{ color:T.text }}>{u.l}</b> — {u.e}</button>)}
+        <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:.18, duration:.38 }}
+          style={{ background: d ? 'rgba(14,14,24,.9)' : 'rgba(255,255,255,.92)', border:`1px solid ${T.border}`, borderRadius:20, padding:28, backdropFilter:'blur(12px)', boxShadow: d ? '0 32px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(249,115,22,.08)' : '0 24px 64px rgba(0,0,0,.1), 0 0 0 1px rgba(249,115,22,.06)' }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+            <div>
+              <label style={{ fontSize:11, fontWeight:700, color:T.muted, display:'block', marginBottom:7, textTransform:'uppercase', letterSpacing:'.06em' }}>Email</label>
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="la-tua@email.it" onKeyDown={e=>e.key==='Enter'&&doLogin()} style={{ width:'100%', boxSizing:'border-box', background:T.alt, border:`1px solid ${T.border}`, borderRadius:12, padding:'10px 14px', fontSize:13, color:T.text, outline:'none', fontFamily:T.font, transition:'border-color .15s' }} onFocus={e=>e.target.style.borderColor=C.orange} onBlur={e=>e.target.style.borderColor=T.border}/>
+            </div>
+            <div>
+              <label style={{ fontSize:11, fontWeight:700, color:T.muted, display:'block', marginBottom:7, textTransform:'uppercase', letterSpacing:'.06em' }}>Password</label>
+              <div style={{ position:'relative' }}>
+                <input type={sp?'text':'password'} value={pw} onChange={e=>setPw(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==='Enter'&&doLogin()} style={{ width:'100%', boxSizing:'border-box', background:T.alt, border:`1px solid ${T.border}`, borderRadius:12, padding:'10px 38px 10px 14px', fontSize:13, color:T.text, outline:'none', fontFamily:T.font, transition:'border-color .15s' }} onFocus={e=>e.target.style.borderColor=C.orange} onBlur={e=>e.target.style.borderColor=T.border}/>
+                <button onClick={()=>setSp(s=>!s)} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:T.muted }}>{sp?<EyeOff size={14}/>:<Eye size={14}/>}</button>
+              </div>
+            </div>
+            {err && <motion.div initial={{ opacity:0, x:-6 }} animate={{ opacity:1, x:0 }} style={{ fontSize:12, color:C.red, textAlign:'center', background:'rgba(239,68,68,.08)', border:'1px solid rgba(239,68,68,.2)', borderRadius:8, padding:'8px 12px' }}>{err}</motion.div>}
+            <button className="glow-btn" onClick={doLogin} style={{ width:'100%', background:`linear-gradient(135deg, ${C.orange} 0%, ${C.orangeDark} 100%)`, color:'#fff', border:'none', borderRadius:12, padding:'12px 0', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:T.font, boxShadow:'0 4px 20px rgba(249,115,22,.35)' }}>Accedi →</button>
           </div>
-        </div>
-      </div>
-      <div style={{ textAlign:'center', fontSize:10, color:T.faint, marginTop:14 }}>PRISMAos © 2026 — CantiereDigitale</div>
+          <div style={{ marginTop:20, paddingTop:16, borderTop:`1px solid ${T.border}` }}>
+            <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'.12em', color:T.faint, marginBottom:10 }}>Account demo — clicca per compilare</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {[{l:'🔑 Admin PRISMAos',e:'admin@prismaos.it',p:'admin2026'},{l:'🏗 EdilCasa S.r.l.',e:'admin@edilcasa.it',p:'edilcasa'},{l:'📐 Geo.co S.r.l.',e:'info@geo.co',p:'geoco'},{l:'🧱 Costruzioni Beta',e:'g.amati@costruzionibeta.com',p:'beta'}].map(u=>
+                <button key={u.e} onClick={()=>{setEmail(u.e);setPw(u.p);}} style={{ textAlign:'left', background:T.alt, border:`1px solid ${T.borderSoft}`, borderRadius:10, padding:'8px 12px', fontSize:11, color:T.muted, cursor:'pointer', width:'100%', fontFamily:T.font, transition:'border-color .15s, background .15s' }}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(249,115,22,.3)';e.currentTarget.style.background=T.hover;}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=T.borderSoft;e.currentTarget.style.background=T.alt;}}>
+                  <b style={{ color:T.text }}>{u.l}</b> — {u.e}
+                </button>)}
+            </div>
+          </div>
+        </motion.div>
+        <div style={{ textAlign:'center', fontSize:10, color:T.faint, marginTop:16 }}>PRISMAos © 2026 — CantiereDigitale</div>
+      </motion.div>
     </div>
-  </div>;
+  );
 }
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
@@ -709,9 +852,10 @@ export default function App() {
   const [user,    setUser]    = useState(null);
   const [view,    setView]    = useState('app');
   const [page,    setPage]    = useState('dashboard');
-  const [theme,   setTheme]   = useState('light');
+  const [theme,   setTheme]   = useState('dark');
   const [no,      setNo]      = useState(false);
   const [clients, setClients] = useState(CLIENTS);
+  const [sideOpen, setSideOpen] = useState(false);
 
   const isAdmin      = user?.role === 'admin';
   const activeClient = isAdmin ? clients[0] : clients.find(c => c.id === user?.client);
@@ -728,28 +872,41 @@ export default function App() {
     setView('app');
   }, []);
 
-  if (!user) return <Login onLogin={login} theme={theme}/>;
-  if (view==="admin" && isAdmin) return <AdminPanel theme={theme} clients={clients} setClients={setClients} onBack={()=>setView("app")}/>;
+  if (!user) return <><GlobalStyles/><Login onLogin={login} theme={theme}/></>;
+  if (view==="admin" && isAdmin) return <><GlobalStyles/><AdminPanel theme={theme} clients={clients} setClients={setClients} onBack={()=>setView("app")}/></>;
 
-  // Assicura che la pagina corrente sia abilitata per il cliente loggato
   const modules = activeClient?.modules || {};
   const safePage = (modules[page] === false) ? 'dashboard' : page;
   if (safePage !== page) setPage(safePage);
 
   const T = tk(theme);
+  const d = theme === 'dark';
   const content = renderPage(safePage, theme);
 
-  return <div style={{ display:'flex', minHeight:'100vh', background:T.bg, color:T.text, fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
-    <Sidebar page={safePage} setPage={setPage} theme={theme} setTheme={setTheme} activeClient={activeClient} isAdmin={isAdmin} setView={setView} onLogout={logout}/>
-    <main style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column' }}>
-      <div style={{ position:'relative' }}>
-        <Topbar page={safePage} theme={theme} notifOpen={no} setNotifOpen={setNo}/>
-        <NotifPanel open={no} onClose={()=>setNo(false)} theme={theme}/>
+  return (
+    <>
+      <GlobalStyles/>
+      <div style={{ display:'flex', minHeight:'100vh', background: d
+          ? 'radial-gradient(ellipse 100% 50% at 50% 0%, rgba(249,115,22,.07) 0%, transparent 60%), #07070e'
+          : 'radial-gradient(ellipse 100% 50% at 50% 0%, rgba(249,115,22,.05) 0%, transparent 60%), #f5f5f7',
+        color:T.text, fontFamily:T.font }}>
+        <Sidebar page={safePage} setPage={setPage} theme={theme} setTheme={setTheme} activeClient={activeClient} isAdmin={isAdmin} setView={setView} onLogout={logout} open={sideOpen} onClose={()=>setSideOpen(false)}/>
+        <main className="cd-main">
+          <div style={{ position:'relative' }}>
+            <Topbar page={safePage} theme={theme} notifOpen={no} setNotifOpen={setNo} onMenuOpen={()=>setSideOpen(true)}/>
+            <NotifPanel open={no} onClose={()=>setNo(false)} theme={theme}/>
+          </div>
+          <AnimatePresence mode="wait">
+            <motion.div key={safePage} variants={pageV} initial="initial" animate="animate" exit="exit"
+              className="cd-content" style={{ flex:1, padding:24, display:'flex', flexDirection:'column', gap:18, overflowY:'auto' }}>
+              {content}
+            </motion.div>
+          </AnimatePresence>
+          <div className="cd-footer" style={{ padding:'9px 24px', borderTop:`1px solid ${T.border}`, display:'flex', justifyContent:'space-between', fontSize:10, color:T.faint }}>
+            <span>CantiereDigitale — {activeClient?.name||'PRISMAos'}</span><span>PRISMAos © 2026</span>
+          </div>
+        </main>
       </div>
-      <div style={{ flex:1, padding:24, display:'flex', flexDirection:'column', gap:18, overflowY:'auto' }}>{content}</div>
-      <div style={{ padding:'9px 24px', borderTop:`1px solid ${T.border}`, display:'flex', justifyContent:'space-between', fontSize:10, color:T.faint }}>
-        <span>CantiereDigitale — {activeClient?.name||'PRISMAos'}</span><span>PRISMAos © 2026</span>
-      </div>
-    </main>
-  </div>;
+    </>
+  );
 }
