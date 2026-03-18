@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── GLOBAL STYLES ────────────────────────────────────────────────────────────
 const GLOBAL_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
   *, *::before, *::after { box-sizing: border-box; }
-  html, body { font-family: 'DM Sans', sans-serif !important; }
+  html, body, #root { font-family: 'DM Sans', sans-serif !important; font-size: 16px; width: 100%; min-height: 100%; margin: 0; }
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(249,115,22,.35); border-radius: 99px; }
@@ -14,10 +14,18 @@ const GLOBAL_CSS = `
     position: sticky; top: 0; display: flex; flex-direction: column;
     transition: transform .32s cubic-bezier(.4,0,.2,1);
   }
+  .cd-main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .cd-content { width: 100%; min-width: 0; max-width: none; padding: clamp(18px, 2vw, 28px) !important; gap: 18px !important; }
   .cd-overlay { display: none; }
   .mobile-menu-btn { display: none !important; }
   .cd-topbar-search { display: flex !important; }
   .cd-topbar-newbtn { display: flex !important; }
+  .cd-search-panel { position: absolute; top: 66px; left: 24px; right: 24px; z-index: 90; }
+  @media print {
+    .cd-sidebar, .cd-topbar, .cd-footer, .cd-overlay, .mobile-menu-btn, .print-hidden { display: none !important; }
+    .cd-main, .cd-content { overflow: visible !important; padding: 0 !important; }
+    body { background: #fff !important; }
+  }
   @media (max-width: 768px) {
     .cd-sidebar {
       position: fixed !important; top: 0; left: 0; bottom: 0; z-index: 200;
@@ -142,6 +150,134 @@ const ttS = (theme) => ({
   itemStyle: { color: tk(theme).text },
 });
 
+
+function textFromChildren(children) {
+  if (children == null) return '';
+  if (typeof children === 'string' || typeof children === 'number') return String(children);
+  if (Array.isArray(children)) return children.map(textFromChildren).join(' ');
+  if (children.props?.children) return textFromChildren(children.props.children);
+  return '';
+}
+
+function downloadTextFile(filename, content, type = 'text/plain;charset=utf-8') {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportCurrentPageAsPdf(title = 'CantiereDigitale') {
+  const prev = document.title;
+  document.title = title;
+  window.print();
+  setTimeout(() => { document.title = prev; }, 300);
+}
+
+function buildSearchEntries(query, enabledModules = {}) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const all = [
+    ...CANT.map(x => ({ page: 'cantieri', title: x.nome, subtitle: `${x.cliente} · ${x.citta}`, badge: 'Cantiere' })),
+    ...PREV.map(x => ({ page: 'preventivi', title: x.id, subtitle: `${x.cli} · ${x.cat} · ${x.val}`, badge: 'Preventivo' })),
+    ...SOPR.map(x => ({ page: 'sopralluoghi', title: x.cli, subtitle: `${x.zona} · ${x.data}`, badge: 'Sopralluogo' })),
+    ...FATT.map(x => ({ page: 'fatture', title: x.n, subtitle: `${x.cli} · ${x.imp}`, badge: 'Fattura' })),
+    ...ORD.map(x => ({ page: 'ordini', title: x.id, subtitle: `${x.f} · ${x.i}`, badge: 'Ordine' })),
+    ...MAG.map(x => ({ page: 'magazzino', title: x.art, subtitle: `${x.rep} · ${x.sku}`, badge: 'Prodotto' })),
+    ...COMP.map(x => ({ page: 'compliance', title: x.v, subtitle: `${x.s} · ${x.r}`, badge: 'Compliance' })),
+    ...DIP.map(x => ({ page: 'squadre', title: x.nome, subtitle: `${x.ruolo} · ${x.team}`, badge: 'Risorsa' })),
+  ].filter(item => enabledModules[item.page] !== false);
+  return all.filter(item => (`${item.title} ${item.subtitle} ${item.badge}`).toLowerCase().includes(q)).slice(0, 12);
+}
+
+function SearchPanel({ results, query, onPick, onClose, theme }) {
+  const T = tk(theme);
+  if (!query.trim()) return null;
+  return (
+    <div className="cd-search-panel print-hidden">
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,.18)' }}>
+        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Risultati ricerca</div>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{results.length} risultati per “{query}”</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.muted }}><X size={14} /></button>
+        </div>
+        {results.length === 0 ? (
+          <div style={{ padding: 18, fontSize: 12, color: T.muted }}>Nessun record trovato. Prova con cliente, cantiere, fattura, ordine o prodotto.</div>
+        ) : (
+          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+            {results.map((r, idx) => (
+              <button key={`${r.page}-${r.title}-${idx}`} onClick={() => onPick(r)} style={{ width: '100%', textAlign: 'left', border: 'none', background: 'transparent', padding: '12px 16px', borderBottom: `1px solid ${T.borderSoft}`, cursor: 'pointer', fontFamily: T.font }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</div>
+                    <div style={{ fontSize: 11, color: T.muted, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.subtitle}</div>
+                  </div>
+                  <div style={{ fontSize: 10, color: C.orange, background: 'rgba(249,115,22,.10)', border: '1px solid rgba(249,115,22,.18)', borderRadius: 999, padding: '3px 8px', height: 'fit-content' }}>{r.badge}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function QuickCreateModal({ open, page, onClose, theme }) {
+  const T = tk(theme);
+  const [title, setTitle] = useState('');
+  const [note, setNote] = useState('');
+  useEffect(() => {
+    if (open) {
+      setTitle('');
+      setNote('');
+    }
+  }, [open, page]);
+  if (!open) return null;
+  const label = META[page]?.title || 'Record';
+  const save = () => {
+    const payload = { id: Date.now(), page, title: title || `Nuovo ${label}`, note, createdAt: new Date().toISOString() };
+    const existing = JSON.parse(localStorage.getItem('cd_quick_drafts') || '[]');
+    localStorage.setItem('cd_quick_drafts', JSON.stringify([payload, ...existing]));
+    window.alert(`${label}: bozza salvata localmente.\nCollega questo flusso a Supabase per persistenza reale.`);
+    onClose();
+  };
+  return (
+    <div className="print-hidden" style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ width: '100%', maxWidth: 520, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,.28)' }}>
+        <div style={{ padding: '16px 18px', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>Nuovo record</div>
+            <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>Modulo attivo: {label}</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.muted }}><X size={16} /></button>
+        </div>
+        <div style={{ padding: 18, display: 'grid', gap: 14 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.06em' }}>Titolo</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder={`Es. Nuovo elemento per ${label}`} style={{ width: '100%', boxSizing: 'border-box', background: T.alt, border: `1px solid ${T.border}`, borderRadius: 12, padding: '11px 14px', fontSize: 14, color: T.text, outline: 'none', fontFamily: T.font }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.06em' }}>Nota</label>
+            <textarea value={note} onChange={e => setNote(e.target.value)} rows={4} placeholder="Descrizione o note operative" style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', background: T.alt, border: `1px solid ${T.border}`, borderRadius: 12, padding: '11px 14px', fontSize: 14, color: T.text, outline: 'none', fontFamily: T.font }} />
+          </div>
+        </div>
+        <div style={{ padding: '0 18px 18px', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <Btn variant="outline" size="md" theme={theme} onClick={onClose}>Annulla</Btn>
+          <Btn size="md" theme={theme} onClick={save}><Plus size={13} />Salva bozza</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 // ─── LOGO ─────────────────────────────────────────────────────────────────────
 const CDLogo = ({ size = 36 }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
@@ -165,12 +301,31 @@ const CDLogo = ({ size = 36 }) => (
 // ─── COMPONENTI BASE ──────────────────────────────────────────────────────────
 function Btn({ children, onClick, variant = 'solid', size = 'sm', theme = 'light', style: extra = {} }) {
   const T = tk(theme);
-  const base = { display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5, borderRadius:10, fontWeight:700, cursor:'pointer', fontFamily:T.font, border:'none', outline:'none', padding: size === 'sm' ? '6px 13px' : '9px 18px', fontSize: size === 'sm' ? 12 : 13, letterSpacing:'.01em' };
+  const base = { display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6, borderRadius:10, fontWeight:700, cursor:'pointer', fontFamily:T.font, border:'none', outline:'none', padding: size === 'sm' ? '7px 14px' : '10px 18px', fontSize: size === 'sm' ? 13 : 14, letterSpacing:'.01em' };
   const vars = {
     solid: { background: `linear-gradient(135deg, ${C.orange} 0%, ${C.orangeDark} 100%)`, color: '#fff', boxShadow:'0 2px 12px rgba(249,115,22,.28)' },
     outline: { background: theme === 'dark' ? 'rgba(255,255,255,.04)' : '#fff', color: T.muted, border: `1px solid ${T.border}` }
   };
-  return <button className={variant === 'solid' ? 'glow-btn' : ''} onClick={onClick} style={{ ...base, ...vars[variant] || vars.solid, ...extra }}>{children}</button>;
+  const fallbackClick = () => {
+    const label = textFromChildren(children).trim();
+    if (/pdf|scarica|esporta/i.test(label)) {
+      exportCurrentPageAsPdf(window.__cd_current_title || 'CantiereDigitale');
+      return;
+    }
+    if (/nuov|connetti|aggiorna/i.test(label)) {
+      window.dispatchEvent(new CustomEvent('cd:new-record', { detail: { page: window.__cd_current_page || 'dashboard' } }));
+      return;
+    }
+    if (/filtri/i.test(label)) {
+      const node = document.querySelector('.cd-topbar-search input');
+      if (node) node.focus();
+      return;
+    }
+    if (/apri/i.test(label)) {
+      window.alert('Apri dettaglio: collega questa azione a un drawer o a una pagina record con Supabase.');
+    }
+  };
+  return <button className={variant === 'solid' ? 'glow-btn' : ''} onClick={onClick || fallbackClick} style={{ ...base, ...vars[variant] || vars.solid, ...extra }}>{children}</button>;
 }
 
 function Tag({ children, tone = 'default' }) {
@@ -201,9 +356,9 @@ function Sec({ title, subtitle, action, children, theme, icon: Icon = Layers3 })
         <div>
           <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'rgba(249,115,22,.09)', border:'1px solid rgba(249,115,22,.18)', borderRadius:9, padding:'4px 10px', marginBottom: subtitle ? 4 : 0 }}>
             <Icon size={13} color={T.accent}/>
-            <span style={{ fontSize:13, fontWeight:700, color:T.accent, fontFamily:"'Syne', sans-serif", letterSpacing:'-.01em' }}>{title}</span>
+            <span style={{ fontSize:15, fontWeight:800, color:T.accent, fontFamily:"'DM Sans', sans-serif", letterSpacing:'-.01em' }}>{title}</span>
           </div>
-          {subtitle && <div style={{ fontSize:11, color:T.muted, marginTop:3 }}>{subtitle}</div>}
+          {subtitle && <div style={{ fontSize:12, color:T.muted, marginTop:4, lineHeight:1.45 }}>{subtitle}</div>}
         </div>
         {action}
       </div>
@@ -220,7 +375,7 @@ function Met({ label, value, icon: Icon, theme }) {
         <span style={{ fontSize:10, color:T.muted, fontWeight:600, letterSpacing:'.04em', textTransform:'uppercase' }}>{label}</span>
         <div style={{ background:'rgba(249,115,22,.1)', borderRadius:7, padding:5 }}><Icon size={12} color={T.accent}/></div>
       </div>
-      <div style={{ fontSize:18, fontWeight:700, color:T.text, fontFamily:"'Syne', sans-serif", letterSpacing:'-.02em' }}>{value}</div>
+      <div style={{ fontSize:20, fontWeight:800, color:T.text, fontFamily:"'DM Sans', sans-serif", letterSpacing:'-.02em' }}>{value}</div>
     </div>
   );
 }
@@ -230,13 +385,13 @@ function Tbl({ columns, rows, theme }) {
   return (
     <div style={{ border:`1px solid ${T.border}`, borderRadius:12, overflow:'hidden' }}>
       <div style={{ display:'grid', gridTemplateColumns:`repeat(${columns.length},1fr)`, padding:'8px 16px', background:T.alt, borderBottom:`1px solid ${T.border}` }}>
-        {columns.map(c => <div key={c} style={{ fontSize:10, fontWeight:700, color:T.faint, textTransform:'uppercase', letterSpacing:'.1em' }}>{c}</div>)}
+        {columns.map(c => <div key={c} style={{ fontSize:11, fontWeight:700, color:T.faint, textTransform:'uppercase', letterSpacing:'.1em' }}>{c}</div>)}
       </div>
       {rows.map((row, i) => (
         <div key={i} style={{ display:'grid', gridTemplateColumns:`repeat(${columns.length},1fr)`, padding:'10px 16px', borderTop: i > 0 ? `1px solid ${T.borderSoft}` : 'none', cursor:'pointer', transition:'background .15s' }}
           onMouseEnter={e => e.currentTarget.style.background = T.hover}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-          {row.map((cell, j) => <div key={j} style={{ fontSize:12, color: j === 0 ? T.text : T.muted, fontWeight: j === 0 ? 600 : 400, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{cell}</div>)}
+          {row.map((cell, j) => <div key={j} style={{ fontSize:13, color: j === 0 ? T.text : T.muted, fontWeight: j === 0 ? 700 : 500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{cell}</div>)}
         </div>
       ))}
     </div>
@@ -327,7 +482,7 @@ function Dashboard({ theme }) {
           <motion.div key={k.label} variants={itemV} className="kpi-card" style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:16, padding:20, display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
             <div>
               <div style={{ fontSize:10, color:T.muted, marginBottom:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'.05em' }}>{k.label}</div>
-              <div style={{ fontSize:26, fontWeight:700, color:T.text, fontFamily:"'Syne', sans-serif", letterSpacing:'-.03em', lineHeight:1 }}>{k.value}</div>
+              <div style={{ fontSize:30, fontWeight:800, color:T.text, fontFamily:"'DM Sans', sans-serif", letterSpacing:'-.03em', lineHeight:1 }}>{k.value}</div>
               <div style={{ fontSize:11, color:C.green, marginTop:6, fontWeight:600 }}>{k.delta}</div>
             </div>
             <div style={{ background:'linear-gradient(135deg, rgba(249,115,22,.15), rgba(249,115,22,.05))', border:'1px solid rgba(249,115,22,.2)', borderRadius:12, padding:10 }}><I size={18} color={T.accent}/></div>
@@ -335,7 +490,7 @@ function Dashboard({ theme }) {
         );})}
       </motion.div>
       <motion.div variants={itemV} className="dash-cols" style={{ display:'grid', gridTemplateColumns:'1.5fr 1fr', gap:16 }}>
-        <Sec title="Controllo direzionale" subtitle="Economico, operativo e commerciale" theme={theme} icon={BarChart3} action={<Btn variant="outline" size="sm" theme={theme}><Download size={11}/>PDF</Btn>}>
+        <Sec title="Controllo direzionale" subtitle="Economico, operativo e commerciale" theme={theme} icon={BarChart3} action={<Btn variant="outline" size="sm" theme={theme} onClick={() => exportCurrentPageAsPdf('Dashboard direzionale')}><Download size={11}/>PDF</Btn>}>
           <div style={{ height:210 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={REV}><defs><linearGradient id="rv" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.orange} stopOpacity={0.25}/><stop offset="95%" stopColor={C.orange} stopOpacity={0}/></linearGradient></defs>
@@ -521,7 +676,7 @@ function Calendario({ theme }) {
   const ticoI = { sopr:CalendarDays, cant:HardHat, scad:AlertCircle, fatt:Receipt };
   return <div className="two-cols" style={{ display:'grid', gridTemplateColumns:'1.5fr .8fr', gap:16 }}>
     <Sec title="Marzo 2026" subtitle="Pianificazione cantieri, sopralluoghi e scadenze" theme={theme} icon={Calendar} action={<div style={{ display:'flex', gap:6 }}><Btn variant="outline" size="sm" theme={theme} style={{ padding:'3px 8px' }}><ChevronLeft size={13}/></Btn><Btn variant="outline" size="sm" theme={theme} style={{ padding:'3px 8px' }}><ChevronRight size={13}/></Btn></div>}>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:6 }}>{['L','M','M','G','V','S','D'].map((d,i)=><div key={i} style={{ textAlign:'center', fontSize:10, fontWeight:700, color:T.faint, padding:'3px 0' }}>{d}</div>)}</div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:6 }}>{['L','M','M','G','V','S','D'].map((d,i)=><div key={i} style={{ textAlign:'center', fontSize:11, fontWeight:700, color:T.faint, padding:'3px 0' }}>{d}</div>)}</div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
         {Array.from({length:6}).map((_,i)=><div key={`e${i}`}/>)}
         {Array.from({length:31}).map((_,i)=>{
@@ -627,7 +782,7 @@ function Sidebar({ page, setPage, theme, setTheme, activeClient, isAdmin, setVie
       <div style={{ padding:'16px 15px 13px', borderBottom:`1px solid ${T.border}`, display:'flex', alignItems:'center', gap:10 }}>
         <CDLogo size={33}/>
         <div>
-          <div style={{ fontSize:14, fontWeight:800, letterSpacing:'-.3px', color:T.text, fontFamily:"'Syne', sans-serif" }}>CantiereDigitale</div>
+          <div style={{ fontSize:15, fontWeight:800, letterSpacing:'-.3px', color:T.text, fontFamily:"'DM Sans', sans-serif" }}>CantiereDigitale</div>
           <div style={{ fontSize:10, color:T.muted }}>{activeClient?.name||'PRISMAos'}</div>
         </div>
         <button onClick={onClose} className="mobile-menu-btn" style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:T.muted, padding:4, display:'none' }}><X size={18}/></button>
@@ -670,29 +825,29 @@ function Sidebar({ page, setPage, theme, setTheme, activeClient, isAdmin, setVie
 }
 
 // ─── TOPBAR ───────────────────────────────────────────────────────────────────
-function Topbar({ page, theme, notifOpen, setNotifOpen, onMenuOpen }) {
+function Topbar({ page, theme, notifOpen, setNotifOpen, onMenuOpen, searchQuery, setSearchQuery }) {
   const T = tk(theme);
   const meta = META[page] || META.dashboard;
   const unread = NOTS.filter(n => !n.read).length;
-  return <div className="cd-topbar" style={{ position:'sticky', top:0, zIndex:20, background:T.topbar, borderBottom:`1px solid ${T.border}`, backdropFilter:'blur(14px)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+  return <div className="cd-topbar" style={{ position:'sticky', top:0, zIndex:20, background:T.topbar, borderBottom:`1px solid ${T.border}`, backdropFilter:'blur(14px)', padding:'14px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
     <div style={{ display:'flex', alignItems:'center', gap:12 }}>
       <button className="mobile-menu-btn" onClick={onMenuOpen} style={{ background:'none', border:`1px solid ${T.border}`, borderRadius:9, padding:'7px 8px', cursor:'pointer', color:T.text, display:'none', alignItems:'center', justifyContent:'center' }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect y="2" width="16" height="1.8" rx=".9" fill="currentColor"/><rect y="7" width="11" height="1.8" rx=".9" fill="currentColor"/><rect y="12" width="14" height="1.8" rx=".9" fill="currentColor"/></svg>
       </button>
       <div>
-        <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'.16em', color:T.faint }}>{meta.ey}</div>
-        <div style={{ fontSize:18, fontWeight:800, letterSpacing:'-.5px', lineHeight:1.2, marginTop:1, color:T.text, fontFamily:"'Syne', sans-serif" }}>{meta.title}</div>
-        <div style={{ fontSize:11, color:T.muted, marginTop:1 }}>{meta.sub}</div>
+        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.16em', color:T.faint }}>{meta.ey}</div>
+        <div style={{ fontSize:22, fontWeight:800, letterSpacing:'-.5px', lineHeight:1.2, marginTop:1, color:T.text, fontFamily:"'DM Sans', sans-serif" }}>{meta.title}</div>
+        <div style={{ fontSize:13, color:T.muted, marginTop:3, lineHeight:1.4 }}>{meta.sub}</div>
       </div>
     </div>
     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
       <div className="cd-topbar-search" style={{ position:'relative' }}>
-        <Search size={12} style={{ position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', color:T.faint }}/>
-        <input placeholder="Cerca cantieri, clienti…" style={{ background:T.alt, border:`1px solid ${T.border}`, borderRadius:10, padding:'7px 12px 7px 28px', fontSize:12, color:T.text, outline:'none', width:210, fontFamily:T.font }}/>
+        <Search size={13} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:T.faint }}/>
+        <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Cerca cantieri, clienti, fatture, ordini, prodotti…" style={{ background:T.alt, border:`1px solid ${T.border}`, borderRadius:10, padding:'9px 12px 9px 30px', fontSize:13, color:T.text, outline:'none', width:280, fontFamily:T.font }}/>
       </div>
-      <div className="cd-topbar-newbtn"><Btn size="sm" theme={theme}><Plus size={12}/>Nuovo</Btn></div>
+      <div className="cd-topbar-newbtn"><Btn size="sm" theme={theme} onClick={() => window.dispatchEvent(new CustomEvent('cd:new-record', { detail: { page } }))}><Plus size={12}/>Nuovo</Btn></div>
       <div style={{ position:'relative' }}>
-        <button onClick={()=>setNotifOpen(o=>!o)} style={{ background:T.alt, border:`1px solid ${T.border}`, borderRadius:10, padding:'7px 10px', cursor:'pointer', color:T.text, display:'flex', alignItems:'center', transition:'background .15s' }}
+        <button onClick={()=>setNotifOpen(o=>!o)} style={{ background:T.alt, border:`1px solid ${T.border}`, borderRadius:10, padding:'8px 10px', cursor:'pointer', color:T.text, display:'flex', alignItems:'center', transition:'background .15s' }}
           onMouseEnter={e=>e.currentTarget.style.background=T.hover} onMouseLeave={e=>e.currentTarget.style.background=T.alt}>
           <Bell size={14}/>
           {unread>0&&<span style={{ position:'absolute', top:-4, right:-4, width:17, height:17, background:`linear-gradient(135deg,${C.orange},${C.orangeDark})`, color:'#fff', borderRadius:9, fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(249,115,22,.5)' }}>{unread}</span>}
@@ -782,7 +937,7 @@ function Login({ onLogin, theme }) {
           <motion.div initial={{ scale:.8, opacity:0 }} animate={{ scale:1, opacity:1 }} transition={{ delay:.1, duration:.4, ease:[.34,1.56,.64,1] }} style={{ display:'flex', justifyContent:'center', marginBottom:14 }}>
             <div style={{ background:'linear-gradient(135deg, rgba(249,115,22,.15), rgba(249,115,22,.05))', border:'1px solid rgba(249,115,22,.2)', borderRadius:22, padding:10 }}><CDLogo size={48}/></div>
           </motion.div>
-          <div style={{ fontSize:28, fontWeight:800, letterSpacing:'-.8px', color:T.text, fontFamily:"'Syne', sans-serif" }}>CantiereDigitale</div>
+          <div style={{ fontSize:28, fontWeight:800, letterSpacing:'-.8px', color:T.text, fontFamily:"'DM Sans', sans-serif" }}>CantiereDigitale</div>
           <div style={{ fontSize:13, color:T.muted, marginTop:5 }}>Gestionale professionale per l'edilizia</div>
         </div>
         <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:.18, duration:.38 }}
@@ -849,16 +1004,21 @@ function renderPage(page, theme) {
 }
 
 export default function App() {
-  const [user,    setUser]    = useState(null);
-  const [view,    setView]    = useState('app');
-  const [page,    setPage]    = useState('dashboard');
-  const [theme,   setTheme]   = useState('dark');
-  const [no,      setNo]      = useState(false);
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState('app');
+  const [page, setPage] = useState('dashboard');
+  const [theme, setTheme] = useState('dark');
+  const [no, setNo] = useState(false);
   const [clients, setClients] = useState(CLIENTS);
   const [sideOpen, setSideOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [quickCreatePage, setQuickCreatePage] = useState('dashboard');
 
-  const isAdmin      = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
   const activeClient = isAdmin ? clients[0] : clients.find(c => c.id === user?.client);
+  const modules = activeClient?.modules || {};
+  const safePage = (modules[page] === false) ? 'dashboard' : page;
 
   const login = useCallback(u => {
     setUser(u);
@@ -870,14 +1030,33 @@ export default function App() {
     setUser(null);
     setPage('dashboard');
     setView('app');
+    setSearchQuery('');
   }, []);
 
-  if (!user) return <><GlobalStyles/><Login onLogin={login} theme={theme}/></>;
-  if (view==="admin" && isAdmin) return <><GlobalStyles/><AdminPanel theme={theme} clients={clients} setClients={setClients} onBack={()=>setView("app")}/></>;
+  useEffect(() => {
+    const handler = (event) => {
+      setQuickCreatePage(event.detail?.page || window.__cd_current_page || 'dashboard');
+      setQuickCreateOpen(true);
+    };
+    window.addEventListener('cd:new-record', handler);
+    return () => window.removeEventListener('cd:new-record', handler);
+  }, []);
 
-  const modules = activeClient?.modules || {};
-  const safePage = (modules[page] === false) ? 'dashboard' : page;
-  if (safePage !== page) setPage(safePage);
+  useEffect(() => {
+    if (safePage !== page) setPage(safePage);
+    window.__cd_current_page = safePage;
+    window.__cd_current_title = META[safePage]?.title || 'CantiereDigitale';
+  }, [safePage, page]);
+
+  const searchResults = useMemo(() => buildSearchEntries(searchQuery, modules), [searchQuery, modules]);
+  const handlePickSearch = (result) => {
+    setPage(result.page);
+    setSearchQuery('');
+    setSideOpen(false);
+  };
+
+  if (!user) return <><GlobalStyles/><Login onLogin={login} theme={theme}/></>;
+  if (view === 'admin' && isAdmin) return <><GlobalStyles/><AdminPanel theme={theme} clients={clients} setClients={setClients} onBack={() => setView('app')}/></>;
 
   const T = tk(theme);
   const d = theme === 'dark';
@@ -886,27 +1065,28 @@ export default function App() {
   return (
     <>
       <GlobalStyles/>
-      <div style={{ display:'flex', minHeight:'100vh', background: d
+      <div style={{ display:'flex', minHeight:'100vh', width:'100%', background: d
           ? 'radial-gradient(ellipse 100% 50% at 50% 0%, rgba(249,115,22,.07) 0%, transparent 60%), #07070e'
           : 'radial-gradient(ellipse 100% 50% at 50% 0%, rgba(249,115,22,.05) 0%, transparent 60%), #f5f5f7',
         color:T.text, fontFamily:T.font }}>
         <Sidebar page={safePage} setPage={setPage} theme={theme} setTheme={setTheme} activeClient={activeClient} isAdmin={isAdmin} setView={setView} onLogout={logout} open={sideOpen} onClose={()=>setSideOpen(false)}/>
         <main className="cd-main">
           <div style={{ position:'relative' }}>
-            <Topbar page={safePage} theme={theme} notifOpen={no} setNotifOpen={setNo} onMenuOpen={()=>setSideOpen(true)}/>
+            <Topbar page={safePage} theme={theme} notifOpen={no} setNotifOpen={setNo} onMenuOpen={()=>setSideOpen(true)} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
             <NotifPanel open={no} onClose={()=>setNo(false)} theme={theme}/>
+            <SearchPanel results={searchResults} query={searchQuery} onPick={handlePickSearch} onClose={() => setSearchQuery('')} theme={theme} />
           </div>
           <AnimatePresence mode="wait">
-            <motion.div key={safePage} variants={pageV} initial="initial" animate="animate" exit="exit"
-              className="cd-content" style={{ flex:1, padding:24, display:'flex', flexDirection:'column', gap:18, overflowY:'auto' }}>
+            <motion.div key={safePage} variants={pageV} initial="initial" animate="animate" exit="exit" className="cd-content" style={{ flex:1, padding:24, display:'flex', flexDirection:'column', gap:18, overflowY:'auto', overflowX:'hidden' }}>
               {content}
             </motion.div>
           </AnimatePresence>
-          <div className="cd-footer" style={{ padding:'9px 24px', borderTop:`1px solid ${T.border}`, display:'flex', justifyContent:'space-between', fontSize:10, color:T.faint }}>
+          <div className="cd-footer" style={{ padding:'9px 24px', borderTop:`1px solid ${T.border}`, display:'flex', justifyContent:'space-between', fontSize:11, color:T.faint }}>
             <span>CantiereDigitale — {activeClient?.name||'PRISMAos'}</span><span>PRISMAos © 2026</span>
           </div>
         </main>
       </div>
+      <QuickCreateModal open={quickCreateOpen} page={quickCreatePage} onClose={() => setQuickCreateOpen(false)} theme={theme} />
     </>
   );
 }
