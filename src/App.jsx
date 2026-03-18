@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar,
@@ -517,7 +517,7 @@ function NotifPanel({ open, onClose, theme }) {
 }
 
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────────
-function Sidebar({ page, setPage, theme, setTheme, activeClient, isAdmin, setView }) {
+function Sidebar({ page, setPage, theme, setTheme, activeClient, isAdmin, setView, onLogout }) {
   const T = tk(theme);
   const modules = activeClient?.modules || {};
   const visible = NAV.map(g => ({ ...g, items: g.items.filter(item => modules[item.id] !== false) })).filter(g => g.items.length > 0);
@@ -557,6 +557,7 @@ function Sidebar({ page, setPage, theme, setTheme, activeClient, isAdmin, setVie
     <div style={{ padding:'8px 8px 12px', borderTop:`1px solid ${T.border}`, display:'flex', flexDirection:'column', gap:2 }}>
       {isAdmin && <button onClick={()=>setView('admin')} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, border:'none', background:'transparent', color:C.orange, fontSize:12, fontWeight:700, cursor:'pointer', width:'100%', fontFamily:'inherit' }}><Crown size={12}/>Admin Panel</button>}
       <button onClick={()=>setTheme(theme==='dark'?'light':'dark')} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, border:'none', background:'transparent', color:T.muted, fontSize:12, fontWeight:600, cursor:'pointer', width:'100%', fontFamily:'inherit' }}>{theme==='dark'?<SunMedium size={12}/>:<Moon size={12}/>}{theme==='dark'?'Tema chiaro':'Tema scuro'}</button>
+      <button onClick={onLogout} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, border:'none', background:'transparent', color:T.muted, fontSize:12, fontWeight:600, cursor:'pointer', width:'100%', fontFamily:'inherit' }}><X size={12}/>Esci</button>
       <div style={{ textAlign:'center', fontSize:9, color:T.faint, paddingTop:4 }}>PRISMAos © 2026</div>
     </div>
   </aside>;
@@ -677,24 +678,8 @@ function Login({ onLogin, theme }) {
 }
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
-export default function App() {
-  const [user,    setUser]    = useState(null);
-  const [view,    setView]    = useState('app');
-  const [page,    setPage]    = useState('dashboard');
-  const [theme,   setTheme]   = useState('light');
-  const [no,      setNo]      = useState(false);
-  const [clients, setClients] = useState(CLIENTS);
-
-  const isAdmin      = user?.role === 'admin';
-  const activeClient = isAdmin ? clients[0] : clients.find(c => c.id === user?.client);
-  const login        = useCallback(u => { setUser(u); setView(u.role==='admin'?'admin':'app'); }, []);
-
-  if (!user) return <Login onLogin={login} theme={theme}/>;
-  if (view==='admin' && isAdmin) return <AdminPanel theme={theme} clients={clients} setClients={setClients} onBack={()=>setView('app')}/>;
-
-  const T = tk(theme);
-  const content = useMemo(() => {
-    switch (page) {
+function renderPage(page, theme) {
+  switch (page) {
       case 'dashboard':  return <Dashboard theme={theme}/>;
       case 'reporting':  return <Reporting theme={theme}/>;
       case 'cashflow':   return <CashFlow theme={theme}/>;
@@ -717,14 +702,48 @@ export default function App() {
       case 'pagamenti':  return <Pagamenti theme={theme}/>;
       case 'compliance': return <Compliance theme={theme}/>;
       default:           return <Dashboard theme={theme}/>;
-    }
-  }, [page, theme]);
+  }
+}
+
+export default function App() {
+  const [user,    setUser]    = useState(null);
+  const [view,    setView]    = useState('app');
+  const [page,    setPage]    = useState('dashboard');
+  const [theme,   setTheme]   = useState('light');
+  const [no,      setNo]      = useState(false);
+  const [clients, setClients] = useState(CLIENTS);
+
+  const isAdmin      = user?.role === 'admin';
+  const activeClient = isAdmin ? clients[0] : clients.find(c => c.id === user?.client);
+
+  const login = useCallback(u => {
+    setUser(u);
+    setPage('dashboard');
+    setView(u.role === 'admin' ? 'admin' : 'app');
+  }, []);
+
+  const logout = useCallback(() => {
+    setUser(null);
+    setPage('dashboard');
+    setView('app');
+  }, []);
+
+  if (!user) return <Login onLogin={login} theme={theme}/>;
+  if (view==="admin" && isAdmin) return <AdminPanel theme={theme} clients={clients} setClients={setClients} onBack={()=>setView("app")}/>;
+
+  // Assicura che la pagina corrente sia abilitata per il cliente loggato
+  const modules = activeClient?.modules || {};
+  const safePage = (modules[page] === false) ? 'dashboard' : page;
+  if (safePage !== page) setPage(safePage);
+
+  const T = tk(theme);
+  const content = renderPage(safePage, theme);
 
   return <div style={{ display:'flex', minHeight:'100vh', background:T.bg, color:T.text, fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
-    <Sidebar page={page} setPage={setPage} theme={theme} setTheme={setTheme} activeClient={activeClient} isAdmin={isAdmin} setView={setView}/>
+    <Sidebar page={safePage} setPage={setPage} theme={theme} setTheme={setTheme} activeClient={activeClient} isAdmin={isAdmin} setView={setView} onLogout={logout}/>
     <main style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column' }}>
       <div style={{ position:'relative' }}>
-        <Topbar page={page} theme={theme} notifOpen={no} setNotifOpen={setNo}/>
+        <Topbar page={safePage} theme={theme} notifOpen={no} setNotifOpen={setNo}/>
         <NotifPanel open={no} onClose={()=>setNo(false)} theme={theme}/>
       </div>
       <div style={{ flex:1, padding:24, display:'flex', flexDirection:'column', gap:18, overflowY:'auto' }}>{content}</div>
