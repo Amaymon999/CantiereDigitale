@@ -85,16 +85,16 @@ import {
 const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
   * { box-sizing: border-box; }
-  html, body, #root { margin: 0; min-height: 100%; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
+  html, body, #root { margin: 0; height: 100%; min-height: 100%; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
   body { overflow: hidden; }
   button, input, select, textarea { font: inherit; }
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-thumb { background: rgba(249,115,22,.28); border-radius: 999px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  .app-shell { display: flex; min-height: 100vh; width: 100vw; overflow: hidden; }
-  .app-sidebar { width: 276px; flex: 0 0 276px; display: flex; flex-direction: column; position: sticky; top: 0; z-index: 40; }
-  .main-panel { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-  .page-wrap { flex: 1; min-width: 0; width: 100%; overflow: auto; padding: 24px 24px 20px; display: flex; flex-direction: column; gap: 20px; }
+  .app-shell { display: flex; min-height: 100dvh; height: 100dvh; width: 100vw; overflow: hidden; }
+  .app-sidebar { width: 276px; flex: 0 0 276px; display: flex; flex-direction: column; position: sticky; top: 0; z-index: 40; height: 100dvh; min-height: 0; }
+  .main-panel { flex: 1 1 auto; min-width: 0; min-height: 0; height: 100dvh; display: flex; flex-direction: column; }
+  .page-wrap { flex: 1 1 auto; min-height: 0; min-width: 0; width: 100%; overflow-y: auto; overflow-x: hidden; padding: 24px 24px 22px; display: flex; flex-direction: column; gap: 20px; }
   .grid-2 { display: grid; grid-template-columns: 1.45fr .95fr; gap: 18px; min-width: 0; }
   .grid-2-even { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; min-width: 0; }
   .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; min-width: 0; }
@@ -112,14 +112,14 @@ const GLOBAL_CSS = `
     .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 980px) {
-    .app-sidebar { position: fixed; inset: 0 auto 0 0; transform: translateX(-100%); transition: transform .26s ease; width: 292px; }
+    .app-sidebar { position: fixed; inset: 0 auto 0 0; transform: translateX(-100%); transition: transform .26s ease; width: 292px; max-width: calc(100vw - 28px); }
     .app-sidebar.open { transform: translateX(0); }
-    .page-wrap { padding: 16px 14px 16px; }
+    .page-wrap { padding: 18px 16px 18px; }
     .kpi-grid, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 760px) {
     .kpi-grid, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr; }
-    .page-wrap { padding: 12px; gap: 14px; }
+    .page-wrap { padding: 14px; gap: 14px; }
   }
 `;
 
@@ -807,8 +807,7 @@ function AttachmentList({ attachments = [], onOpen, onRemove, theme }) {
   );
 }
 
-function Login({ theme, onLogin, setTheme }) {
-  const T = tk(theme);
+function Login({ onLogin }) {
   const [email, setEmail] = useState('admin@edilcasa.it');
   const [pw, setPw] = useState('edilcasa');
   const [showPw, setShowPw] = useState(false);
@@ -823,49 +822,50 @@ function Login({ theme, onLogin, setTheme }) {
     onLogin(user);
   };
 
+  const coverBg = `linear-gradient(135deg, rgba(15,23,42,.9), rgba(234,88,12,.72)), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 1200'%3E%3Crect width='1200' height='1200' fill='%23111827'/%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.16' stroke-width='8'%3E%3Cpath d='M90 980h220V560H90zM360 980h180V430H360zM590 980h230V300H590zM870 980h160V650H870z'/%3E%3Cpath d='M120 540h160M390 410h120M625 280h150M900 630h100'/%3E%3Cpath d='M760 170l130 130M825 170v220M715 235h220'/%3E%3C/g%3E%3Cg fill='%23f97316' fill-opacity='.16'%3E%3Ccircle cx='975' cy='220' r='180'/%3E%3Ccircle cx='280' cy='1020' r='220'/%3E%3C/g%3E%3C/svg%3E") center/cover`;
+
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: T.bg, padding: 18 }}>
-      <div style={{ width: 'min(1080px, 96vw)', display: 'grid', gridTemplateColumns: '1.1fr .9fr', gap: 18 }} className="grid-2-even">
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 24, padding: 32, minHeight: 560, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 999, background: COLORS.orangeSoft, color: COLORS.orangeDark, border: `1px solid ${COLORS.orangeBorder}`, fontWeight: 800 }}><Building size={18} /> CantiereDigitale</div>
-            <div style={{ marginTop: 22, fontSize: 42, lineHeight: 1, fontWeight: 900, letterSpacing: '-.04em' }}>Più vicino a un gestionale vero.</div>
-            <div style={{ marginTop: 14, color: T.muted, fontSize: 16, lineHeight: 1.6, maxWidth: 580 }}>
-              Login demo per testare dashboard, lead, sopralluoghi, preventivi PDF, cantieri, task board, documenti, calendario interattivo, prodotti con campi Shopify, fatture, pagamenti e compliance.
+    <div style={{ minHeight: '100dvh', background: '#ffffff', color: '#0f172a' }}>
+      <div style={{ minHeight: '100dvh', width: '100vw', display: 'grid', gridTemplateColumns: '1.2fr .8fr' }} className="grid-2-even">
+        <div style={{ minHeight: '100dvh', backgroundImage: coverBg, backgroundSize: 'cover', backgroundPosition: 'center', padding: '48px clamp(24px, 4vw, 56px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: '#fff' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 999, background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.18)', fontWeight: 800, width: 'fit-content', backdropFilter: 'blur(8px)' }}>
+            <Building size={18} /> CantiereDigitale
+          </div>
+          <div style={{ maxWidth: 620 }}>
+            <div style={{ fontSize: 'clamp(44px, 6vw, 76px)', lineHeight: .95, fontWeight: 900, letterSpacing: '-.06em' }}>Il gestionale operativo per l'edilizia.</div>
+            <div style={{ marginTop: 20, fontSize: 'clamp(16px, 2vw, 21px)', lineHeight: 1.6, color: 'rgba(255,255,255,.82)', maxWidth: 560 }}>
+              Controlla cantieri, sopralluoghi, preventivi, documenti, magazzino e finance in un unico ambiente di lavoro.
             </div>
           </div>
-          <div className="grid-3">
-            <ValueBox theme={theme} icon={Users} label="CRM" value="Lead apribili e modificabili" hint="Note, allegati e stato" />
-            <ValueBox theme={theme} icon={FileText} label="Preventivi" value="Template + PDF" hint="Righe modificabili" />
-            <ValueBox theme={theme} icon={Calendar} label="Calendario" value="Mese interattivo" hint="Eventi editabili" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'rgba(255,255,255,.74)' }}>
+            <CheckCircle2 size={16} /> Versione operativa locale pronta per essere collegata a database reale.
           </div>
         </div>
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 24, padding: 28, boxShadow: '0 18px 40px rgba(15,23,42,.08)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center' }}>
+        <div style={{ minHeight: '100dvh', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px clamp(18px, 4vw, 52px)' }}>
+          <div style={{ width: 'min(520px, 100%)', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 28, padding: '30px clamp(20px, 3vw, 34px)', boxShadow: '0 24px 60px rgba(15,23,42,.08)' }}>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-.03em' }}>Accedi</div>
-              <div style={{ marginTop: 6, color: T.muted, fontSize: 14 }}>Tema chiaro predefinito, scuro opzionale.</div>
+              <div style={{ fontSize: 34, fontWeight: 900, letterSpacing: '-.05em' }}>Accedi</div>
+              <div style={{ marginTop: 8, color: '#64748b', fontSize: 15, lineHeight: 1.6 }}>Ambiente chiaro, pulito e pronto all'uso. Inserisci le credenziali demo per entrare.</div>
             </div>
-            <Btn theme={theme} variant="outline" icon={theme === 'light' ? Moon : SunMedium} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? 'Scuro' : 'Chiaro'}</Btn>
-          </div>
-          <div className="stack" style={{ marginTop: 20 }}>
-            <Field theme={theme} label="Email" value={email} onChange={setEmail} type="email" />
-            <div>
-              <Field theme={theme} label="Password" value={pw} onChange={setPw} type={showPw ? 'text' : 'password'} />
-              <button onClick={() => setShowPw(!showPw)} style={{ marginTop: 8, background: 'transparent', border: 0, color: T.muted, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12 }}>{showPw ? <EyeOff size={14} /> : <Eye size={14} />} {showPw ? 'Nascondi' : 'Mostra'} password</button>
+            <div className="stack" style={{ marginTop: 24 }}>
+              <Field theme="light" label="Email" value={email} onChange={setEmail} type="email" />
+              <div>
+                <Field theme="light" label="Password" value={pw} onChange={setPw} type={showPw ? 'text' : 'password'} />
+                <button onClick={() => setShowPw(!showPw)} style={{ marginTop: 8, background: 'transparent', border: 0, color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12 }}>{showPw ? <EyeOff size={14} /> : <Eye size={14} />} {showPw ? 'Nascondi' : 'Mostra'} password</button>
+              </div>
+              {error ? <div style={{ fontSize: 12, color: COLORS.red, fontWeight: 700 }}>{error}</div> : null}
+              <Btn theme="light" icon={ArrowUpRight} onClick={submit} style={{ width: '100%', marginTop: 8, padding: '14px 18px', fontSize: 14 }}>Entra</Btn>
             </div>
-            {error ? <div style={{ fontSize: 12, color: COLORS.red, fontWeight: 700 }}>{error}</div> : null}
-            <Btn theme={theme} icon={ArrowUpRight} onClick={submit} style={{ width: '100%', marginTop: 8 }}>Entra</Btn>
-          </div>
-          <div style={{ marginTop: 24, paddingTop: 18, borderTop: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: 12, color: T.muted, marginBottom: 10 }}>Utenti demo rapidi</div>
-            <div className="stack" style={{ gap: 8 }}>
-              {USERS.map((u) => (
-                <button key={u.email} onClick={() => { setEmail(u.email); setPw(u.pw); setError(''); }} style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 12, border: `1px solid ${T.border}`, background: T.alt, color: T.text, cursor: 'pointer' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{u.name}</div>
-                  <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>{u.email}</div>
-                </button>
-              ))}
+            <div style={{ marginTop: 28, paddingTop: 18, borderTop: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10 }}>Utenti demo rapidi</div>
+              <div className="stack" style={{ gap: 8 }}>
+                {USERS.map((u) => (
+                  <button key={u.email} onClick={() => { setEmail(u.email); setPw(u.pw); setError(''); }} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 14, border: '1px solid #e2e8f0', background: '#ffffff', color: '#0f172a', cursor: 'pointer' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{u.name}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>{u.email}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -880,7 +880,7 @@ function Sidebar({ theme, page, setPage, activeClient, onLogout, sideOpen, setSi
     <>
       {sideOpen ? <div onClick={() => setSideOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(2,6,23,.46)', zIndex: 35 }} /> : null}
       <aside className={`app-sidebar ${sideOpen ? 'open' : ''}`} style={{ background: T.sidebar, color: T.text, borderRight: `1px solid ${T.border}` }}>
-        <div style={{ padding: 16, borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ padding: 16, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 42, height: 42, borderRadius: 14, display: 'grid', placeItems: 'center', background: COLORS.black, color: '#fff' }}><Building size={18} /></div>
             <div style={{ minWidth: 0 }}>
@@ -889,8 +889,8 @@ function Sidebar({ theme, page, setPage, activeClient, onLogout, sideOpen, setSi
             </div>
           </div>
         </div>
-        <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 14, overflow: 'auto' }}>
-          <div style={{ padding: 12, borderRadius: 16, border: `1px solid ${T.border}`, background: T.alt }}>
+        <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', overflowX: 'hidden', flex: 1, minHeight: 0 }}>
+          <div style={{ padding: 12, borderRadius: 16, border: `1px solid ${T.border}`, background: T.alt, flexShrink: 0 }}>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.08em', color: T.muted, fontWeight: 800 }}>Account</div>
             <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
               <div>
@@ -901,7 +901,7 @@ function Sidebar({ theme, page, setPage, activeClient, onLogout, sideOpen, setSi
             </div>
           </div>
           {NAV.map((group) => (
-            <div key={group.label}>
+            <div key={group.label} style={{ flexShrink: 0 }}>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.08em', color: T.muted, fontWeight: 800, margin: '8px 10px' }}>{group.label}</div>
               <div className="stack" style={{ gap: 6 }}>
                 {group.items.map((item) => {
@@ -930,7 +930,7 @@ function Sidebar({ theme, page, setPage, activeClient, onLogout, sideOpen, setSi
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 'auto', padding: 14, borderTop: `1px solid ${T.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: 14, borderTop: `1px solid ${T.border}`, display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
           {isAdmin ? <Btn theme={theme} variant="outline" icon={Crown} onClick={() => setView('admin')} style={{ width: '100%' }}>Admin</Btn> : null}
           <Btn theme={theme} variant="ghost" icon={X} onClick={onLogout} style={{ width: '100%', justifyContent: 'flex-start', color: COLORS.red }}>Esci</Btn>
         </div>
@@ -954,36 +954,88 @@ function SearchDropdown({ theme, results, onSelect }) {
   );
 }
 
-function Topbar({ theme, page, setTheme, search, setSearch, results, onSelectResult, onNew, setSideOpen, notifications }) {
+function NotificationsSheet({ theme, open, onClose, items = [], onSelect }) {
+  const T = tk(theme);
+  return (
+    <Modal open={open} onClose={onClose} theme={theme} title="Notifiche" subtitle="Avvisi cliccabili e azioni prioritarie">
+      <div className="stack" style={{ gap: 10 }}>
+        {items.length === 0 ? <div style={{ fontSize: 13, color: T.muted }}>Nessuna notifica disponibile.</div> : items.map((item) => {
+          const Icon = item.icon || Bell;
+          return (
+            <button key={item.id} onClick={() => onSelect(item)} style={{ width: '100%', textAlign: 'left', padding: '14px 15px', borderRadius: 16, border: `1px solid ${T.border}`, background: T.alt, color: T.text, cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 12, display: 'grid', placeItems: 'center', background: item.tone === 'danger' ? (theme === 'dark' ? 'rgba(239,68,68,.12)' : COLORS.redSoft) : item.tone === 'success' ? (theme === 'dark' ? 'rgba(22,163,74,.12)' : COLORS.greenSoft) : (theme === 'dark' ? 'rgba(249,115,22,.12)' : COLORS.orangeSoft), color: item.tone === 'danger' ? COLORS.red : item.tone === 'success' ? COLORS.green : COLORS.orangeDark, border: `1px solid ${item.tone === 'danger' ? 'rgba(239,68,68,.18)' : item.tone === 'success' ? 'rgba(22,163,74,.18)' : 'rgba(249,115,22,.18)'}` }}><Icon size={16} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800 }}>{item.title}</div>
+                    <div style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>{item.subtitle}</div>
+                  </div>
+                </div>
+                <Tag tone={item.tone || 'warning'}>{item.tag || 'Apri'}</Tag>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </Modal>
+  );
+}
+
+function Topbar({ theme, page, setTheme, search, setSearch, results, onSelectResult, onNew, setSideOpen, notifications, onOpenNotifications }) {
   const T = tk(theme);
   const meta = PAGE_META[page] || PAGE_META.dashboard;
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 980;
+  const [vw, setVw] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
+
+  useEffect(() => {
+    const onResize = () => setVw(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const isMobile = vw < 980;
+  const isCompact = vw < 760;
+
   return (
-    <div style={{ position: 'sticky', top: 0, zIndex: 30, background: T.topbar, backdropFilter: 'blur(10px)', borderBottom: `1px solid ${T.border}`, padding: '14px 18px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <button onClick={() => setSideOpen(true)} style={{ display: isMobile ? 'inline-flex' : 'none', width: 40, height: 40, borderRadius: 12, border: `1px solid ${T.border}`, background: T.card, color: T.text, alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Menu size={18} /></button>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.08em', color: T.muted, fontWeight: 800 }}>{meta.ey}</div>
-            <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-.04em', lineHeight: 1.1 }}>{meta.title}</div>
-            <div style={{ fontSize: 13, color: T.muted, marginTop: 4 }}>{meta.subtitle}</div>
+    <div style={{ position: 'sticky', top: 0, zIndex: 30, background: T.topbar, backdropFilter: 'blur(10px)', borderBottom: `1px solid ${T.border}`, padding: isMobile ? '16px 14px' : '18px 22px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 14 : 12 }}>
+        <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, minWidth: 0, flex: isMobile ? '1 1 100%' : '1 1 auto' }}>
+            {isMobile ? <button onClick={() => setSideOpen(true)} style={{ display: 'inline-flex', width: 46, height: 46, borderRadius: 14, border: `1px solid ${T.border}`, background: T.card, color: T.text, alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}><Menu size={20} /></button> : null}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.1em', color: T.muted, fontWeight: 800 }}>{meta.ey}</div>
+              <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 900, letterSpacing: '-.05em', lineHeight: 1.02 }}>{meta.title}</div>
+              <div style={{ fontSize: isMobile ? 14 : 15, color: T.muted, marginTop: 6, lineHeight: 1.45 }}>{meta.subtitle}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-between' : 'flex-end', flexWrap: 'wrap' }}>
+            {!isCompact ? (
+              <div style={{ position: 'relative', width: isMobile ? '100%' : 340, maxWidth: isMobile ? '100%' : '42vw', flex: isMobile ? '1 1 100%' : '0 0 auto', order: isMobile ? 3 : 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 15, border: `1px solid ${T.border}`, background: T.card }}>
+                  <Search size={16} color={T.muted} />
+                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cerca lead, preventivi, cantieri..." style={{ flex: 1, border: 0, outline: 'none', background: 'transparent', color: T.text, fontSize: 14 }} />
+                </div>
+                {search.trim() ? <SearchDropdown theme={theme} results={results} onSelect={onSelectResult} /> : null}
+              </div>
+            ) : null}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {!isMobile ? <Btn theme={theme} variant="outline" icon={theme === 'light' ? Moon : SunMedium} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} style={{ padding: '11px 12px' }}>{theme === 'light' ? 'Scuro' : 'Chiaro'}</Btn> : null}
+              <div style={{ position: 'relative' }}>
+                <Btn theme={theme} variant="outline" icon={Bell} onClick={onOpenNotifications} style={{ padding: '11px 12px' }}>Notifiche</Btn>
+                {notifications > 0 ? <div style={{ position: 'absolute', top: -6, right: -6, minWidth: 20, height: 20, padding: '0 4px', borderRadius: 999, display: 'grid', placeItems: 'center', background: COLORS.orange, color: '#fff', fontSize: 10, fontWeight: 800 }}>{notifications}</div> : null}
+              </div>
+              <Btn theme={theme} icon={Plus} onClick={onNew} style={{ padding: '11px 14px' }}>Nuovo</Btn>
+            </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <div style={{ position: 'relative', width: 320, maxWidth: '42vw', display: typeof window !== 'undefined' && window.innerWidth < 760 ? 'none' : 'block' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 14, border: `1px solid ${T.border}`, background: T.card }}>
-              <Search size={15} color={T.muted} />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cerca lead, preventivi, cantieri..." style={{ flex: 1, border: 0, outline: 'none', background: 'transparent', color: T.text, fontSize: 13 }} />
+        {isCompact ? (
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 15, border: `1px solid ${T.border}`, background: T.card }}>
+              <Search size={16} color={T.muted} />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cerca lead, preventivi, cantieri..." style={{ flex: 1, border: 0, outline: 'none', background: 'transparent', color: T.text, fontSize: 14 }} />
             </div>
             {search.trim() ? <SearchDropdown theme={theme} results={results} onSelect={onSelectResult} /> : null}
           </div>
-          <Btn theme={theme} variant="outline" icon={theme === 'light' ? Moon : SunMedium} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} style={{ padding: '10px 12px' }}>{theme === 'light' ? 'Scuro' : 'Chiaro'}</Btn>
-          <div style={{ position: 'relative' }}>
-            <Btn theme={theme} variant="outline" icon={Bell} style={{ padding: '10px 12px' }} />
-            {notifications > 0 ? <div style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 999, display: 'grid', placeItems: 'center', background: COLORS.orange, color: '#fff', fontSize: 10, fontWeight: 800 }}>{notifications}</div> : null}
-          </div>
-          <Btn theme={theme} icon={Plus} onClick={onNew}>Nuovo</Btn>
-        </div>
+        ) : null}
       </div>
     </div>
   );
@@ -1840,6 +1892,7 @@ export default function App() {
   const [db, setDb] = useStoredState('cd_db_realistic_v1', seedDb());
   const [search, setSearch] = useState('');
   const [sideOpen, setSideOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [editor, setEditor] = useState({ type: null, record: null });
   const { toast, push } = useToast();
 
@@ -1902,14 +1955,27 @@ export default function App() {
     return sources.filter((item) => (`${item.title} ${item.subtitle}`).toLowerCase().includes(q)).slice(0, 12);
   }, [search, db]);
 
+  const notificationItems = useMemo(() => ([
+    ...db.compliance.map((c) => ({ id: `cmp-${c.id}`, title: c.title, subtitle: `Compliance · ${c.owner} · scade ${formatDate(c.dueDate)}`, page: 'compliance', type: 'compliance', record: c, tone: c.status === 'Urgente' ? 'danger' : 'warning', tag: c.status, icon: ShieldCheck })),
+    ...db.invoices.filter((i) => i.status === 'In scadenza' || i.status === 'Bozza').map((i) => ({ id: `inv-${i.id}`, title: i.number || 'Bozza fattura', subtitle: `Fatture · ${i.client} · ${fmtMoney(i.amount)}`, page: 'fatture', type: 'invoice', record: i, tone: i.status === 'In scadenza' ? 'danger' : 'warning', tag: i.status, icon: Receipt })),
+    ...db.tasks.filter((t) => t.stage !== 'done').slice(0, 4).map((t) => ({ id: `task-${t.id}`, title: t.title, subtitle: `Task · ${t.project} · scade ${formatDate(t.dueDate)}`, page: 'attivita', type: 'task', record: t, tone: t.priority === 'Alta' ? 'warning' : 'info', tag: t.priority, icon: CheckSquare })),
+    ...db.visits.slice(0, 4).map((v) => ({ id: `visit-${v.id}`, title: v.title, subtitle: `Sopralluogo · ${v.client} · ${formatDate(v.date)}`, page: 'sopralluoghi', type: 'visit', record: v, tone: v.status === 'Da eseguire' ? 'warning' : 'info', tag: v.status, icon: CalendarDays })),
+  ]).sort((a, b) => a.title.localeCompare(b.title)).slice(0, 12), [db]);
+
   const openSearchResult = useCallback((result) => {
     setSearch('');
     setPage(result.page);
     openRecord(result.type, result.record);
   }, [openRecord, setPage]);
 
+  const openNotification = useCallback((item) => {
+    setNotificationsOpen(false);
+    setPage(item.page);
+    openRecord(item.type, item.record);
+  }, [openRecord, setPage]);
+
   if (!user) {
-    return <><GlobalStyles /><Login theme={theme} setTheme={setTheme} onLogin={(u) => { setUser(u); setView(u.role === 'admin' ? 'admin' : 'app'); }} /></>;
+    return <><GlobalStyles /><Login onLogin={(u) => { setUser(u); setView(u.role === 'admin' ? 'admin' : 'app'); }} /></>;
   }
 
   if (view === 'admin' && isAdmin) {
@@ -1928,9 +1994,9 @@ export default function App() {
           <Topbar theme={theme} page={safePage} setTheme={setTheme} search={search} setSearch={setSearch} results={searchResults} onSelectResult={openSearchResult} onNew={() => {
             const map = { crm: 'lead', sopralluoghi: 'visit', preventivi: 'quote', showroom: 'showroom', cantieri: 'project', attivita: 'task', documenti: 'document', calendario: 'event', infissi: 'product', pavimenti: 'product', bagni: 'product', magazzino: 'product', ordini: 'order', fatture: 'invoice', pagamenti: 'payment', compliance: 'compliance' };
             onNew(map[safePage] || 'lead', safePage === 'infissi' ? { category: 'Infissi' } : safePage === 'pavimenti' ? { category: 'Pavimenti' } : safePage === 'bagni' ? { category: 'Bagni' } : {});
-          }} setSideOpen={setSideOpen} notifications={db.compliance.filter((c) => c.status === 'Urgente').length + db.invoices.filter((i) => i.status === 'In scadenza').length} />
+          }} setSideOpen={setSideOpen} notifications={notificationItems.length} onOpenNotifications={() => setNotificationsOpen(true)} />
           <AnimatePresence mode="wait">
-            <motion.div key={safePage} className="page-wrap" variants={pageMotion} initial="initial" animate="animate" exit="exit">
+            <motion.div key={safePage} className="page-wrap" style={{ flex: 1, minHeight: 0 }} variants={pageMotion} initial="initial" animate="animate" exit="exit">
               {renderPage(safePage, ctx)}
             </motion.div>
           </AnimatePresence>
@@ -1940,6 +2006,7 @@ export default function App() {
           </div>
         </div>
       </div>
+      <NotificationsSheet theme={theme} open={notificationsOpen} onClose={() => setNotificationsOpen(false)} items={notificationItems} onSelect={openNotification} />
       <GenericEditorModal
         theme={theme}
         type={editor.type}
