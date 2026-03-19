@@ -106,10 +106,18 @@ const GLOBAL_CSS = `
   .responsive-table { min-width: 0; }
   .search-pop { position: absolute; top: calc(100% + 10px); left: 0; width: min(560px, calc(100vw - 32px)); max-height: 420px; overflow: auto; z-index: 60; }
   .fade-up { animation: fadeUp .24s ease; }
+  .editor-split { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(320px, .88fr); gap: 18px; align-items: start; }
+  .editor-split.product { grid-template-columns: minmax(0, 1.04fr) minmax(320px, .96fr); }
+  .editor-sticky { position: sticky; top: 0; }
+  .preview-frame { width: 100%; min-height: 560px; border: 0; background: #fff; border-radius: 18px; }
+  .drop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(94px, 1fr)); gap: 10px; }
+  .tutorial-card { position: fixed; z-index: 410; width: min(360px, calc(100vw - 28px)); }
+  .tutorial-highlight { position: fixed; border: 2px solid rgba(249,115,22,.82); box-shadow: 0 0 0 9999px rgba(15,23,42,.48); border-radius: 22px; z-index: 405; pointer-events: none; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   @media (max-width: 1220px) {
-    .grid-2, .grid-2-even { grid-template-columns: 1fr; }
+    .grid-2, .grid-2-even, .editor-split, .editor-split.product { grid-template-columns: 1fr; }
     .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .editor-sticky { position: relative; top: auto; }
   }
   @media (max-width: 980px) {
     .app-sidebar { position: fixed; inset: 0 auto 0 0; transform: translateX(-100%); transition: transform .26s ease; width: 292px; max-width: calc(100vw - 28px); }
@@ -120,6 +128,8 @@ const GLOBAL_CSS = `
   @media (max-width: 760px) {
     .kpi-grid, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr; }
     .page-wrap { padding: 14px; gap: 14px; }
+    .preview-frame { min-height: 360px; }
+    .tutorial-card { left: 14px !important; right: 14px !important; top: auto !important; bottom: 14px !important; width: auto; }
   }
 `;
 
@@ -431,9 +441,9 @@ function seedDb() {
       { id: uid('ev'), title: 'Consegna gres showroom', date: '2026-03-24', type: 'Magazzino', related: 'Pavimentazioni', notes: 'Scarico diretto in showroom.' },
     ],
     products: [
-      { id: uid('prd'), category: 'Infissi', sku: 'INF-101', name: 'Infisso PVC Premium 2 ante', description: 'Telaio 82mm, doppia guarnizione.', price: 1240, stock: 12, status: 'Attivo', brand: 'EdilCasa', shopifyHandle: 'infisso-pvc-premium-2-ante', shopifyTitle: 'Infisso PVC Premium 2 ante', shopifyVendor: 'EdilCasa', shopifyType: 'Infissi', tags: 'pvc,premium,serramento', barcode: '800111222333', weight: '28', imageUrl: '', published: 'TRUE' },
-      { id: uid('prd'), category: 'Pavimenti', sku: 'PAV-330', name: 'Gres Pearl 60x120', description: 'Gres porcellanato effetto pietra.', price: 46, stock: 96, status: 'Attivo', brand: 'EdilCasa', shopifyHandle: 'gres-pearl-60x120', shopifyTitle: 'Gres Pearl 60x120', shopifyVendor: 'EdilCasa', shopifyType: 'Pavimentazioni', tags: 'gres,60x120,pearl', barcode: '800111222444', weight: '32', imageUrl: '', published: 'TRUE' },
-      { id: uid('prd'), category: 'Bagni', sku: 'BAG-204', name: 'Mobile bagno Urban 120', description: 'Mobile sospeso finitura noce.', price: 990, stock: 8, status: 'Bozza', brand: 'EdilCasa', shopifyHandle: 'mobile-bagno-urban-120', shopifyTitle: 'Mobile bagno Urban 120', shopifyVendor: 'EdilCasa', shopifyType: 'Bagni', tags: 'bagno,mobile,urban', barcode: '800111222555', weight: '18', imageUrl: '', published: 'FALSE' },
+      { id: uid('prd'), category: 'Infissi', sku: 'INF-101', name: 'Infisso PVC Premium 2 ante', description: 'Telaio 82mm, doppia guarnizione.', price: 1240, stock: 12, status: 'Attivo', brand: 'EdilCasa', shopifyHandle: 'infisso-pvc-premium-2-ante', shopifyTitle: 'Infisso PVC Premium 2 ante', shopifyVendor: 'EdilCasa', shopifyType: 'Infissi', tags: 'pvc,premium,serramento', barcode: '800111222333', weight: '28', imageUrl: '', media: [], published: 'TRUE' },
+      { id: uid('prd'), category: 'Pavimenti', sku: 'PAV-330', name: 'Gres Pearl 60x120', description: 'Gres porcellanato effetto pietra.', price: 46, stock: 96, status: 'Attivo', brand: 'EdilCasa', shopifyHandle: 'gres-pearl-60x120', shopifyTitle: 'Gres Pearl 60x120', shopifyVendor: 'EdilCasa', shopifyType: 'Pavimentazioni', tags: 'gres,60x120,pearl', barcode: '800111222444', weight: '32', imageUrl: '', media: [], published: 'TRUE' },
+      { id: uid('prd'), category: 'Bagni', sku: 'BAG-204', name: 'Mobile bagno Urban 120', description: 'Mobile sospeso finitura noce.', price: 990, stock: 8, status: 'Bozza', brand: 'EdilCasa', shopifyHandle: 'mobile-bagno-urban-120', shopifyTitle: 'Mobile bagno Urban 120', shopifyVendor: 'EdilCasa', shopifyType: 'Bagni', tags: 'bagno,mobile,urban', barcode: '800111222555', weight: '18', imageUrl: '', media: [], published: 'FALSE' },
     ],
     orders: [
       { id: uid('ord'), supplier: 'Ceramiche Uno', category: 'Pavimenti', amount: 8420, status: 'In consegna', dueDate: '2026-03-29', notes: 'Consegna showroom + cantiere.', project: 'Villa Moretti' },
@@ -468,7 +478,7 @@ const EMPTY = {
   task: () => ({ id: uid('task'), title: '', projectId: '', project: '', stage: 'todo', priority: 'Media', assignee: '', dueDate: todayISO(), description: '', comments: [] }),
   document: () => ({ id: uid('doc'), name: '', category: 'Tecnico', project: '', uploadedAt: todayISO(), notes: '', fileName: '', dataUrl: '' }),
   event: () => ({ id: uid('ev'), title: '', date: todayISO(), type: 'Operativo', related: '', notes: '' }),
-  product: (category = 'Infissi') => ({ id: uid('prd'), category, sku: '', name: '', description: '', price: 0, stock: 0, status: 'Bozza', brand: 'EdilCasa', shopifyHandle: '', shopifyTitle: '', shopifyVendor: 'EdilCasa', shopifyType: category, tags: '', barcode: '', weight: '', imageUrl: '', published: 'FALSE' }),
+  product: (category = 'Infissi') => ({ id: uid('prd'), category, sku: '', name: '', description: '', price: 0, stock: 0, status: 'Bozza', brand: 'EdilCasa', shopifyHandle: '', shopifyTitle: '', shopifyVendor: 'EdilCasa', shopifyType: category, tags: '', barcode: '', weight: '', imageUrl: '', media: [], published: 'FALSE' }),
   order: () => ({ id: uid('ord'), supplier: '', category: 'Generale', amount: 0, status: 'Da approvare', dueDate: todayISO(), notes: '', project: '' }),
   invoice: () => ({ id: uid('inv'), number: '', client: '', type: 'Acconto', amount: 0, status: 'Bozza', dueDate: todayISO(), notes: '' }),
   payment: () => ({ id: uid('pay'), supplier: '', date: todayISO(), amount: 0, priority: 'Media', status: 'Pianificato', notes: '' }),
@@ -666,15 +676,17 @@ function Modal({ open, onClose, theme, title, subtitle, children, wide = false }
   if (!open) return null;
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,6,23,.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 18 }}>
-      <motion.div initial={{ opacity: 0, y: 14, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} style={{ width: wide ? 'min(1100px, 96vw)' : 'min(760px, 96vw)', maxHeight: '92vh', overflow: 'auto', background: T.card, color: T.text, borderRadius: 20, border: `1px solid ${T.border}`, boxShadow: '0 28px 70px rgba(2,6,23,.32)' }}>
+      <motion.div initial={{ opacity: 0, y: 14, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} style={{ position: 'relative', width: wide ? 'min(1180px, 96vw)' : 'min(760px, 96vw)', maxHeight: '92vh', overflow: 'auto', background: T.card, color: T.text, borderRadius: 20, border: `1px solid ${T.border}`, boxShadow: '0 28px 70px rgba(2,6,23,.32)' }}>
+        <div style={{ position: 'absolute', inset: 0, background: theme === 'dark' ? 'linear-gradient(180deg, rgba(249,115,22,.12), transparent 18%)' : 'linear-gradient(180deg, rgba(249,115,22,.08), transparent 18%)', pointerEvents: 'none' }} />
         <div style={{ position: 'sticky', top: 0, zIndex: 2, background: T.card, borderBottom: `1px solid ${T.border}`, padding: '18px 20px', display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: 16 }}>
           <div>
-            <div style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.15 }}>{title}</div>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 11px', borderRadius:999, background: theme === 'dark' ? 'rgba(249,115,22,.14)' : COLORS.orangeSoft, color: COLORS.orangeDark, border:'1px solid rgba(249,115,22,.22)', fontSize:12, fontWeight:800 }}>Editor</div>
+            <div style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.15, marginTop: 10 }}>{title}</div>
             {subtitle ? <div style={{ marginTop: 4, color: T.muted, fontSize: 13 }}>{subtitle}</div> : null}
           </div>
           <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 12, border: `1px solid ${T.border}`, background: T.alt, color: T.text, cursor: 'pointer' }}><X size={18} /></button>
         </div>
-        <div style={{ padding: 20 }}>{children}</div>
+        <div style={{ position:'relative', padding: 20 }}>{children}</div>
       </motion.div>
     </div>
   );
@@ -702,17 +714,18 @@ function Field({ theme, label, value, onChange, type = 'text', options = [], pla
 function Section({ theme, title, subtitle, icon: Icon = Layers3, action, children, padded = true }) {
   const T = tk(theme);
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, overflow: 'hidden', boxShadow: theme === 'dark' ? '0 14px 34px rgba(2,6,23,.18)' : '0 10px 28px rgba(15,23,42,.05)' }}>
-      <div style={{ padding: '16px 18px', borderBottom: `1px solid ${T.border}`, display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: 14 }}>
+    <div style={{ position: 'relative', background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, overflow: 'hidden', boxShadow: theme === 'dark' ? '0 14px 34px rgba(2,6,23,.18)' : '0 10px 28px rgba(15,23,42,.05)' }}>
+      <div style={{ position: 'absolute', inset: 0, background: theme === 'dark' ? 'linear-gradient(180deg, rgba(249,115,22,.08), transparent 24%)' : 'linear-gradient(180deg, rgba(249,115,22,.06), transparent 24%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', padding: '16px 18px', borderBottom: `1px solid ${T.border}`, display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: 14 }}>
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 11px', borderRadius: 999, background: theme === 'dark' ? 'rgba(249,115,22,.12)' : COLORS.orangeSoft, color: COLORS.orangeDark, border: '1px solid rgba(249,115,22,.22)', fontSize: 13, fontWeight: 800 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 999, background: theme === 'dark' ? 'rgba(249,115,22,.14)' : COLORS.orangeSoft, color: COLORS.orangeDark, border: '1px solid rgba(249,115,22,.22)', fontSize: 13, fontWeight: 800, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5)' }}>
             <Icon size={14} /> {title}
           </div>
           {subtitle ? <div style={{ marginTop: 8, color: T.muted, fontSize: 13 }}>{subtitle}</div> : null}
         </div>
         {action}
       </div>
-      <div style={{ padding: padded ? 18 : 0 }}>{children}</div>
+      <div style={{ position: 'relative', padding: padded ? 18 : 0 }}>{children}</div>
     </div>
   );
 }
@@ -1020,10 +1033,10 @@ function Topbar({ theme, page, setTheme, search, setSearch, results, onSelectRes
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               {!isMobile ? <Btn theme={theme} variant="outline" icon={theme === 'light' ? Moon : SunMedium} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} style={{ padding: '11px 12px' }}>{theme === 'light' ? 'Scuro' : 'Chiaro'}</Btn> : null}
               <div style={{ position: 'relative' }}>
-                <Btn theme={theme} variant="outline" icon={Bell} onClick={onOpenNotifications} style={{ padding: '11px 12px' }}>Notifiche</Btn>
+                <Btn theme={theme} variant="outline" icon={Bell} onClick={onOpenNotifications} style={isMobile ? { padding: '11px 12px', width: 44, height: 44 } : { padding: '11px 12px' }}>{isMobile ? null : 'Notifiche'}</Btn>
                 {notifications > 0 ? <div style={{ position: 'absolute', top: -6, right: -6, minWidth: 20, height: 20, padding: '0 4px', borderRadius: 999, display: 'grid', placeItems: 'center', background: COLORS.orange, color: '#fff', fontSize: 10, fontWeight: 800 }}>{notifications}</div> : null}
               </div>
-              <Btn theme={theme} icon={Plus} onClick={onNew} style={{ padding: '11px 14px' }}>Nuovo</Btn>
+              <Btn theme={theme} icon={Plus} onClick={onNew} style={isMobile ? { padding: '11px 12px', width: 44, height: 44 } : { padding: '11px 14px' }}>{isMobile ? null : 'Nuovo'}</Btn>
             </div>
           </div>
         </div>
@@ -1078,6 +1091,53 @@ function invoiceHtml(invoice) {
   `;
 }
 
+function previewDocument(title, html) {
+  return `
+    <html>
+      <head>
+        <style>
+          body{font-family:'DM Sans',Arial,sans-serif;padding:28px;background:#ffffff;color:#0f172a;}
+          h1,h2,h3{margin:0 0 12px;}
+          .meta{color:#64748b;margin-bottom:18px;font-size:13px;}
+          table{width:100%;border-collapse:collapse;margin-top:20px;}
+          th,td{border:1px solid #e2e8f0;padding:10px;text-align:left;font-size:13px;vertical-align:top;}
+          th{background:#fff7ed;color:#ea580c;}
+          .total{margin-top:18px;text-align:right;font-size:18px;font-weight:700;}
+          .badge{display:inline-block;padding:5px 10px;border-radius:999px;background:#fff7ed;color:#ea580c;font-size:12px;font-weight:700;}
+          .preview-note{margin-top:18px;padding:14px;border-radius:16px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:12px;}
+        </style>
+      </head>
+      <body>${html}<div class="preview-note">Anteprima documento generata nel gestionale.</div></body>
+    </html>
+  `;
+}
+
+function HtmlPreview({ title, html, theme }) {
+  const T = tk(theme);
+  return (
+    <div style={{ border: `1px solid ${T.border}`, borderRadius: 20, overflow: 'hidden', background: '#ffffff', boxShadow: '0 18px 42px rgba(15,23,42,.08)' }}>
+      <div style={{ padding: '12px 14px', borderBottom: `1px solid ${theme === 'dark' ? '#1d2636' : '#e2e8f0'}`, background: '#fff7ed', color: '#9a3412', fontSize: 12, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase' }}>{title}</div>
+      <iframe title={title} className="preview-frame" srcDoc={previewDocument(title, html)} />
+    </div>
+  );
+}
+
+function GuideBubble({ title, text, icon: Icon = Sparkles, tone = 'orange', theme = 'light' }) {
+  const bg = tone === 'green' ? 'rgba(22,163,74,.12)' : tone === 'red' ? 'rgba(239,68,68,.12)' : 'rgba(249,115,22,.12)';
+  const color = tone === 'green' ? COLORS.green : tone === 'red' ? COLORS.red : COLORS.orangeDark;
+  return (
+    <div style={{ padding: 14, borderRadius: 18, border: `1px solid ${tone === 'green' ? 'rgba(22,163,74,.2)' : tone === 'red' ? 'rgba(239,68,68,.2)' : 'rgba(249,115,22,.2)'}`, background: theme === 'dark' ? 'rgba(15,23,42,.55)' : '#fff' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 12, display:'grid', placeItems:'center', background: bg, color, border: `1px solid ${tone === 'green' ? 'rgba(22,163,74,.18)' : tone === 'red' ? 'rgba(239,68,68,.18)' : 'rgba(249,115,22,.18)'}` }}><Icon size={16} /></div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
+          <div style={{ marginTop: 4, fontSize: 12, color: theme === 'dark' ? '#94a3b8' : '#64748b', lineHeight: 1.55 }}>{text}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function GenericEditorModal({ theme, type, record, open, onClose, onSave, onDelete, settings }) {
   const [form, setForm] = useState(record);
   useEffect(() => setForm(record), [record]);
@@ -1097,6 +1157,17 @@ function GenericEditorModal({ theme, type, record, open, onClose, onSave, onDele
     setForm((prev) => ({ ...prev, attachments: [...(prev.attachments || []), ...built] }));
   };
 
+  const attachProductMedia = async (files) => {
+    const built = await Promise.all([...files].map(async (file) => ({
+      id: uid('img'),
+      name: file.name,
+      type: file.type,
+      sizeLabel: `${Math.round(file.size / 1024)} KB`,
+      dataUrl: await readFileAsDataUrl(file),
+    })));
+    setForm((prev) => ({ ...prev, media: [...(prev.media || []), ...built], imageUrl: prev.imageUrl || built?.[0]?.dataUrl || '' }));
+  };
+
   if (!open || !form) return null;
 
   const titleMap = {
@@ -1105,48 +1176,225 @@ function GenericEditorModal({ theme, type, record, open, onClose, onSave, onDele
 
   const removeAttachment = (id) => setForm((prev) => ({ ...prev, attachments: (prev.attachments || []).filter((a) => a.id !== id) }));
   const openAttachment = (att) => { if (att.dataUrl) window.open(att.dataUrl, '_blank'); };
+  const removeProductMedia = (id) => setForm((prev) => ({ ...prev, media: (prev.media || []).filter((a) => a.id !== id) }));
+
+  const quoteTotal = buildQuoteTotal({ ...form, items: form.items || [] });
+  const invoiceAmount = Number(form.amount || 0);
+  const quoteMarkup = quoteHtml({ ...form, items: form.items || [] }, settings.defaultQuoteFooter);
+  const invoiceMarkup = invoiceHtml(form);
+  const productMedia = (form.media && form.media.length ? form.media : (form.imageUrl ? [{ id: 'remote-image', name: 'Immagine principale', dataUrl: form.imageUrl, sizeLabel: 'link' }] : []));
+  const shopifyChecklist = [
+    ['SKU', form.sku],
+    ['Handle', form.shopifyHandle],
+    ['Titolo store', form.shopifyTitle || form.name],
+    ['Vendor', form.shopifyVendor || form.brand],
+    ['Tipo', form.shopifyType || form.category],
+    ['Prezzo', form.price],
+    ['Immagine', productMedia.length > 0 || form.imageUrl],
+  ];
+  const shopifyComplete = shopifyChecklist.filter(([, value]) => !!value || value === 0).length;
 
   return (
-    <Modal open={open} onClose={onClose} theme={theme} title={`${form.id ? 'Scheda' : 'Nuovo'} ${titleMap[type] || 'record'}`} subtitle="Campi modificabili e salvati localmente" wide={type === 'quote'}>
+    <Modal open={open} onClose={onClose} theme={theme} title={`${form.id ? 'Scheda' : 'Nuovo'} ${titleMap[type] || 'record'}`} subtitle="Campi modificabili e salvati localmente" wide={type === 'quote' || type === 'invoice' || type === 'product'}>
       {type === 'quote' ? (
         <div className="stack" style={{ gap: 18 }}>
-          <div className="grid-3">
-            <Field theme={theme} label="Cliente" value={form.client} onChange={(v) => setField('client', v)} />
-            <Field theme={theme} label="Titolo" value={form.title} onChange={(v) => setField('title', v)} />
-            <Field theme={theme} label="Template" type="select" value={form.template} onChange={(v) => {
-              const tpl = QUOTE_TEMPLATES[v];
-              setForm((prev) => ({ ...prev, template: v, title: prev.title || tpl.title, items: tpl.items.map((x) => ({ ...x, id: uid('li') })) }));
-            }} options={Object.keys(QUOTE_TEMPLATES)} />
-          </div>
-          <div className="grid-3">
-            <Field theme={theme} label="Stato" type="select" value={form.status} onChange={(v) => setField('status', v)} options={['Bozza', 'Inviato', 'Accettato', 'Respinto']} />
-            <Field theme={theme} label="Validità" type="date" value={form.validUntil} onChange={(v) => setField('validUntil', v)} />
-            <ValueBox theme={theme} icon={Euro} label="Totale" value={fmtMoney(buildQuoteTotal(form))} hint="Aggiornato in automatico" />
-          </div>
-          <Field theme={theme} label="Note" type="textarea" value={form.notes} onChange={(v) => setField('notes', v)} rows={4} />
-          <Section theme={theme} title="Righe preventivo" subtitle="Template modificabile" icon={ReceiptText} action={<Btn theme={theme} variant="soft" icon={Plus} onClick={() => setField('items', [...form.items, { id: uid('li'), description: '', qty: 1, price: 0 }])}>Aggiungi riga</Btn>}>
-            <div className="stack" style={{ gap: 10 }}>
-              {form.items.map((item, idx) => (
-                <div key={item.id} className="grid-4" style={{ alignItems: 'end' }}>
-                  <Field theme={theme} label={`Descrizione ${idx + 1}`} value={item.description} onChange={(v) => setField('items', form.items.map((it) => it.id === item.id ? { ...it, description: v } : it))} />
-                  <Field theme={theme} label="Qtà" type="number" value={item.qty} onChange={(v) => setField('items', form.items.map((it) => it.id === item.id ? { ...it, qty: v } : it))} />
-                  <Field theme={theme} label="Prezzo" type="number" value={item.price} onChange={(v) => setField('items', form.items.map((it) => it.id === item.id ? { ...it, price: v } : it))} />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ flex: 1, padding: '12px 13px', borderRadius: 12, border: `1px solid ${T.border}`, background: T.alt, fontSize: 14, fontWeight: 700 }}>{fmtMoney(Number(item.qty || 0) * Number(item.price || 0))}</div>
-                    <Btn theme={theme} variant="ghost" icon={Trash2} onClick={() => setField('items', form.items.filter((it) => it.id !== item.id))} style={{ color: COLORS.red }}>Rimuovi</Btn>
-                  </div>
+          <div className="editor-split">
+            <div className="stack" style={{ gap: 16 }}>
+              <div className="grid-3">
+                <Field theme={theme} label="Cliente" value={form.client} onChange={(v) => setField('client', v)} />
+                <Field theme={theme} label="Titolo" value={form.title} onChange={(v) => setField('title', v)} />
+                <Field theme={theme} label="Validità" type="date" value={form.validUntil} onChange={(v) => setField('validUntil', v)} />
+              </div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
+                {Object.entries(QUOTE_TEMPLATES).map(([key, tpl]) => (
+                  <button key={key} onClick={() => setForm((prev) => ({ ...prev, template: key, title: tpl.title, items: tpl.items.map((x) => ({ ...x, id: uid('li') })) }))} style={{ padding:'10px 12px', borderRadius:14, border: key === form.template ? '1px solid rgba(249,115,22,.36)' : `1px solid ${T.border}`, background: key === form.template ? (theme === 'dark' ? 'rgba(249,115,22,.12)' : COLORS.orangeSoft) : T.alt, color: key === form.template ? COLORS.orangeDark : T.text, cursor:'pointer', textAlign:'left', minWidth:160 }}>
+                    <div style={{ fontSize:13, fontWeight:800 }}>{tpl.label}</div>
+                    <div style={{ marginTop:4, fontSize:11, color: T.muted }}>{tpl.items.length} righe pronte</div>
+                  </button>
+                ))}
+              </div>
+              <div className="grid-3">
+                <ValueBox theme={theme} icon={ReceiptText} label="Stato" value={form.status || 'Bozza'} hint="workflow commerciale" />
+                <ValueBox theme={theme} icon={Euro} label="Totale" value={fmtMoney(quoteTotal)} hint="calcolato in tempo reale" />
+                <ValueBox theme={theme} icon={Sparkles} label="Template" value={QUOTE_TEMPLATES[form.template || 'general']?.label || 'Custom'} hint="modificabile" />
+              </div>
+              <Field theme={theme} label="Note finali" type="textarea" value={form.notes} onChange={(v) => setField('notes', v)} rows={4} />
+              <Section theme={theme} title="Righe preventivo" subtitle="Aggiungi, ordina e personalizza le voci" icon={ReceiptText} action={<Btn theme={theme} variant="soft" icon={Plus} onClick={() => setField('items', [...(form.items || []), { id: uid('li'), description: '', qty: 1, price: 0 }])}>Aggiungi riga</Btn>}>
+                <div className="stack" style={{ gap: 10 }}>
+                  {(form.items || []).map((item, idx) => (
+                    <div key={item.id} style={{ border: `1px solid ${T.border}`, borderRadius: 18, padding: 14, background: theme === 'dark' ? 'rgba(249,115,22,.04)' : 'rgba(249,115,22,.03)' }}>
+                      <div className="grid-4" style={{ alignItems: 'end' }}>
+                        <Field theme={theme} label={`Descrizione ${idx + 1}`} value={item.description} onChange={(v) => setField('items', form.items.map((it) => it.id === item.id ? { ...it, description: v } : it))} />
+                        <Field theme={theme} label="Qtà" type="number" value={item.qty} onChange={(v) => setField('items', form.items.map((it) => it.id === item.id ? { ...it, qty: v } : it))} />
+                        <Field theme={theme} label="Prezzo" type="number" value={item.price} onChange={(v) => setField('items', form.items.map((it) => it.id === item.id ? { ...it, price: v } : it))} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ flex: 1, padding: '12px 13px', borderRadius: 12, border: `1px solid ${T.border}`, background: theme === 'dark' ? 'rgba(249,115,22,.08)' : COLORS.orangeSoft, fontSize: 14, fontWeight: 800, color: COLORS.orangeDark }}>{fmtMoney(Number(item.qty || 0) * Number(item.price || 0))}</div>
+                          <Btn theme={theme} variant="ghost" icon={Trash2} onClick={() => setField('items', form.items.filter((it) => it.id !== item.id))} style={{ color: COLORS.red }}>Rimuovi</Btn>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </Section>
             </div>
-          </Section>
+            <div className="editor-sticky stack" style={{ gap: 14 }}>
+              <GuideBubble title="Anteprima live" text="Mentre compili il preventivo, la preview si aggiorna e ti mostra già il layout PDF finale." icon={Eye} theme={theme} />
+              <HtmlPreview title="Preview preventivo" html={quoteMarkup} theme={theme} />
+            </div>
+          </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <Btn theme={theme} variant="outline" icon={Download} onClick={() => printHtml(form.title || 'Preventivo', quoteHtml(form, settings.defaultQuoteFooter))}>Genera PDF</Btn>
+              <Btn theme={theme} variant="outline" icon={Download} onClick={() => printHtml(form.title || 'Preventivo', quoteMarkup)}>Genera PDF</Btn>
               {onDelete ? <Btn theme={theme} variant="ghost" icon={Trash2} onClick={() => onDelete(form.id)} style={{ color: COLORS.red }}>Elimina</Btn> : null}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn theme={theme} variant="outline" onClick={onClose}>Chiudi</Btn>
-              <Btn theme={theme} icon={CheckCircle2} onClick={() => onSave(form)}>Salva preventivo</Btn>
+              <Btn theme={theme} icon={CheckCircle2} onClick={() => onSave({ ...form, total: quoteTotal })}>Salva preventivo</Btn>
+            </div>
+          </div>
+        </div>
+      ) : type === 'invoice' ? (
+        <div className="stack" style={{ gap: 18 }}>
+          <div className="editor-split">
+            <div className="stack" style={{ gap: 16 }}>
+              <div className="grid-3">
+                <Field theme={theme} label="Numero fattura" value={form.number} onChange={(v) => setField('number', v)} />
+                <Field theme={theme} label="Cliente" value={form.client} onChange={(v) => setField('client', v)} />
+                <Field theme={theme} label="Tipo" type="select" value={form.type} onChange={(v) => setField('type', v)} options={['Acconto', 'SAL', 'Saldo finale']} />
+              </div>
+              <div className="grid-3">
+                <Field theme={theme} label="Importo" type="number" value={form.amount} onChange={(v) => setField('amount', v)} />
+                <Field theme={theme} label="Scadenza" type="date" value={form.dueDate} onChange={(v) => setField('dueDate', v)} />
+                <Field theme={theme} label="Stato" type="select" value={form.status} onChange={(v) => setField('status', v)} options={['Bozza', 'Da inviare', 'In scadenza', 'Incassata']} />
+              </div>
+              <div className="grid-3">
+                <ValueBox theme={theme} icon={Euro} label="Totale fattura" value={fmtMoney(invoiceAmount)} hint="anteprima aggiornata" />
+                <ValueBox theme={theme} icon={Receipt} label="Documento" value={form.number || 'Bozza'} hint="progressivo modificabile" />
+                <ValueBox theme={theme} icon={Clock3} label="Scadenza" value={formatDate(form.dueDate)} hint="controllo incasso" />
+              </div>
+              <Section theme={theme} title="Contenuto documento" subtitle="Descrizione e note per il PDF" icon={ReceiptText}>
+                <div className="stack" style={{ gap: 12 }}>
+                  <Field theme={theme} label="Descrizione / causale" type="textarea" value={form.notes} onChange={(v) => setField('notes', v)} rows={6} />
+                  <GuideBubble title="Suggerimento" text="Usa una causale chiara: SAL n°3, acconto lavori, saldo finale, extra capitolato." icon={Sparkles} theme={theme} />
+                </div>
+              </Section>
+            </div>
+            <div className="editor-sticky stack" style={{ gap: 14 }}>
+              <GuideBubble title="Preview fattura" text="Questa preview è pensata per avvicinarti al documento finale e velocizzare la verifica prima della stampa." icon={Eye} theme={theme} />
+              <HtmlPreview title="Preview fattura" html={invoiceMarkup} theme={theme} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Btn theme={theme} variant="outline" icon={Download} onClick={() => printHtml(form.number || 'Fattura', invoiceMarkup)}>Genera PDF fattura</Btn>
+              {onDelete ? <Btn theme={theme} variant="ghost" icon={Trash2} onClick={() => onDelete(form.id)} style={{ color: COLORS.red }}>Elimina</Btn> : null}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Btn theme={theme} variant="outline" onClick={onClose}>Chiudi</Btn>
+              <Btn theme={theme} icon={CheckCircle2} onClick={() => onSave(form)}>Salva fattura</Btn>
+            </div>
+          </div>
+        </div>
+      ) : type === 'product' ? (
+        <div className="stack" style={{ gap: 18 }}>
+          <div className="editor-split product">
+            <div className="stack" style={{ gap: 16 }}>
+              <div className="grid-3">
+                <Field theme={theme} label="Categoria" type="select" value={form.category} onChange={(v) => setField('category', v)} options={['Infissi', 'Pavimenti', 'Bagni']} />
+                <Field theme={theme} label="SKU" value={form.sku} onChange={(v) => setField('sku', v)} />
+                <Field theme={theme} label="Stato" type="select" value={form.status} onChange={(v) => setField('status', v)} options={['Bozza', 'Attivo', 'Esaurito']} />
+              </div>
+              <div className="grid-3">
+                <Field theme={theme} label="Nome prodotto" value={form.name} onChange={(v) => setField('name', v)} />
+                <Field theme={theme} label="Brand" value={form.brand} onChange={(v) => setField('brand', v)} />
+                <Field theme={theme} label="Barcode" value={form.barcode} onChange={(v) => setField('barcode', v)} />
+              </div>
+              <div className="grid-3">
+                <Field theme={theme} label="Prezzo" type="number" value={form.price} onChange={(v) => setField('price', v)} />
+                <Field theme={theme} label="Stock" type="number" value={form.stock} onChange={(v) => setField('stock', v)} />
+                <Field theme={theme} label="Peso (kg)" value={form.weight} onChange={(v) => setField('weight', v)} />
+              </div>
+              <Field theme={theme} label="Descrizione prodotto" type="textarea" value={form.description} onChange={(v) => setField('description', v)} rows={5} />
+              <Section theme={theme} title="Media prodotto" subtitle="Drag & drop stile Shopify con preview immediata" icon={Upload}>
+                <div
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={(e) => { e.preventDefault(); attachProductMedia(e.dataTransfer.files); }}
+                  style={{ border: '1.5px dashed rgba(249,115,22,.36)', borderRadius: 18, padding: 18, background: theme === 'dark' ? 'rgba(249,115,22,.06)' : 'rgba(249,115,22,.04)' }}
+                >
+                  <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 800 }}>Trascina qui immagini prodotto</div>
+                      <div style={{ marginTop: 6, fontSize: 13, color: T.muted }}>JPG, PNG o WEBP. La prima immagine diventa la preview principale.</div>
+                    </div>
+                    <label style={{ cursor:'pointer' }}>
+                      <input type="file" accept="image/*" multiple style={{ display:'none' }} onChange={(e) => attachProductMedia(e.target.files)} />
+                      <Btn theme={theme} variant="soft" icon={Upload}>Carica immagini</Btn>
+                    </label>
+                  </div>
+                  <div className="drop-grid" style={{ marginTop: 14 }}>
+                    {productMedia.length === 0 ? <div style={{ padding: 14, borderRadius: 14, background: theme === 'dark' ? 'rgba(15,23,42,.5)' : '#fff', border: `1px solid ${T.border}`, color: T.muted, fontSize: 13 }}>Nessuna immagine caricata</div> : productMedia.map((img, idx) => (
+                      <div key={img.id} style={{ position:'relative', borderRadius:16, overflow:'hidden', border: `1px solid ${T.border}`, background: '#fff' }}>
+                        <img src={img.dataUrl} alt={img.name} style={{ width:'100%', height:108, objectFit:'cover', display:'block' }} />
+                        <div style={{ padding: 8, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, background: theme === 'dark' ? 'rgba(15,23,42,.92)' : 'rgba(255,255,255,.96)' }}>
+                          <div style={{ minWidth:0 }}>
+                            <div style={{ fontSize:11, fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{idx === 0 ? 'Preview principale' : img.name}</div>
+                          </div>
+                          <button onClick={() => removeProductMedia(img.id)} style={{ border:0, background:'transparent', color: COLORS.red, cursor:'pointer' }}><Trash2 size={14} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Section>
+              <Section theme={theme} title="Dati Shopify" subtitle="Tutto quello che serve per esportare il prodotto correttamente" icon={Store}>
+                <div className="grid-3">
+                  <Field theme={theme} label="Handle" value={form.shopifyHandle} onChange={(v) => setField('shopifyHandle', v)} />
+                  <Field theme={theme} label="Titolo store" value={form.shopifyTitle} onChange={(v) => setField('shopifyTitle', v)} />
+                  <Field theme={theme} label="Vendor" value={form.shopifyVendor} onChange={(v) => setField('shopifyVendor', v)} />
+                </div>
+                <div className="grid-3" style={{ marginTop: 12 }}>
+                  <Field theme={theme} label="Tipo" value={form.shopifyType} onChange={(v) => setField('shopifyType', v)} />
+                  <Field theme={theme} label="Tag" value={form.tags} onChange={(v) => setField('tags', v)} />
+                  <Field theme={theme} label="Published" type="select" value={form.published} onChange={(v) => setField('published', v)} options={['TRUE', 'FALSE']} />
+                </div>
+              </Section>
+            </div>
+            <div className="editor-sticky stack" style={{ gap: 14 }}>
+              <GuideBubble title="Preview store" text="Questa scheda simula come apparirà il prodotto nello store, così puoi controllare immagine, titolo e prezzo prima dell'export." icon={Store} theme={theme} />
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: 22, overflow:'hidden', background: theme === 'dark' ? '#0f172a' : '#fff', boxShadow: '0 18px 42px rgba(15,23,42,.08)' }}>
+                <div style={{ minHeight: 240, background: productMedia[0]?.dataUrl ? '#fff' : (theme === 'dark' ? 'linear-gradient(135deg, rgba(249,115,22,.15), rgba(15,23,42,.55))' : 'linear-gradient(135deg, rgba(249,115,22,.08), rgba(255,255,255,1))'), display:'grid', placeItems:'center' }}>
+                  {productMedia[0]?.dataUrl ? <img src={productMedia[0].dataUrl} alt={form.name} style={{ width:'100%', maxHeight:280, objectFit:'cover', display:'block' }} /> : <Package size={48} color={COLORS.orange} />}
+                </div>
+                <div style={{ padding: 18 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                    <Tag tone={form.status === 'Attivo' ? 'success' : form.status === 'Esaurito' ? 'danger' : 'warning'}>{form.status || 'Bozza'}</Tag>
+                    <div style={{ fontSize:12, color:T.muted }}>{form.category || 'Prodotto'}</div>
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: 22, fontWeight: 900, letterSpacing:'-.04em' }}>{form.shopifyTitle || form.name || 'Nuovo prodotto'}</div>
+                  <div style={{ marginTop: 8, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>{form.description || 'Aggiungi una descrizione chiara e orientata alla vendita.'}</div>
+                  <div style={{ marginTop: 16, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: COLORS.orangeDark }}>{fmtMoney(form.price || 0)}</div>
+                    <div style={{ fontSize: 12, color: T.muted }}>SKU {form.sku || '—'}</div>
+                  </div>
+                </div>
+              </div>
+              <Section theme={theme} title="Checklist export" subtitle={`Campi completati ${shopifyComplete}/${shopifyChecklist.length}`} icon={CheckCircle2}>
+                <div className="stack" style={{ gap: 8 }}>
+                  {shopifyChecklist.map(([label, value]) => (
+                    <div key={label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'10px 12px', borderRadius:14, background: value ? (theme === 'dark' ? 'rgba(22,163,74,.08)' : 'rgba(22,163,74,.06)') : (theme === 'dark' ? 'rgba(249,115,22,.08)' : 'rgba(249,115,22,.05)'), border:`1px solid ${value ? 'rgba(22,163,74,.14)' : 'rgba(249,115,22,.16)'}` }}>
+                      <span style={{ fontSize: 13, fontWeight: 700 }}>{label}</span>
+                      <Tag tone={value || value === 0 ? 'success' : 'warning'}>{value || value === 0 ? 'OK' : 'Manca'}</Tag>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div>{onDelete ? <Btn theme={theme} variant="ghost" icon={Trash2} onClick={() => onDelete(form.id)} style={{ color: COLORS.red }}>Elimina</Btn> : null}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Btn theme={theme} variant="outline" onClick={onClose}>Chiudi</Btn>
+              <Btn theme={theme} icon={CheckCircle2} onClick={() => onSave({ ...form, imageUrl: productMedia[0]?.dataUrl || form.imageUrl })}>Salva prodotto</Btn>
             </div>
           </div>
         </div>
@@ -1165,12 +1413,9 @@ function GenericEditorModal({ theme, type, record, open, onClose, onSave, onDele
           {type === 'task' ? (
             <Section theme={theme} title="Commenti" subtitle="Workflow in stile board" icon={Layers3} action={<Btn theme={theme} variant="soft" icon={Plus} onClick={() => setField('comments', [...(form.comments || []), `Nuovo commento ${new Date().toLocaleTimeString('it-IT')}`])}>Aggiungi commento</Btn>}>
               <div className="stack" style={{ gap: 8 }}>
-                {(form.comments || []).length === 0 ? <div style={{ fontSize: 12, color: T.muted }}>Nessun commento</div> : form.comments.map((comment, idx) => <div key={`${idx}-${comment}`} style={{ padding: 12, background: T.alt, border: `1px solid ${T.borderSoft}`, borderRadius: 12, fontSize: 13 }}>{comment}</div>)}
+                {(form.comments || []).length === 0 ? <div style={{ fontSize: 12, color: T.muted }}>Nessun commento</div> : form.comments.map((comment, idx) => <div key={`${idx}-${comment}`} style={{ padding: 12, background: theme === 'dark' ? 'rgba(249,115,22,.04)' : 'rgba(249,115,22,.04)', border: `1px solid ${T.borderSoft}`, borderRadius: 12, fontSize: 13 }}>{comment}</div>)}
               </div>
             </Section>
-          ) : null}
-          {type === 'invoice' ? (
-            <Btn theme={theme} variant="outline" icon={Download} onClick={() => printHtml(form.number || 'Fattura', invoiceHtml(form))}>Genera PDF fattura</Btn>
           ) : null}
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div>{onDelete ? <Btn theme={theme} variant="ghost" icon={Trash2} onClick={() => onDelete(form.id)} style={{ color: COLORS.red }}>Elimina</Btn> : null}</div>
@@ -1856,6 +2101,73 @@ function AdminPanel({ theme, clients, setClients, onBack }) {
   );
 }
 
+function TutorialOverlay({ theme, open, stepIndex, setStepIndex, onClose }) {
+  const steps = [
+    {
+      title: 'Menu laterale',
+      text: 'Qui trovi i moduli principali del gestionale: commerciale, operativo, prodotti, finance e Shopify.',
+      icon: Menu,
+      box: { top: 90, left: 14, width: 250, height: 520 },
+      card: { top: 120, left: 286 },
+    },
+    {
+      title: 'Ricerca globale',
+      text: 'Usa la ricerca in alto per trovare lead, preventivi, cantieri, task, documenti e prodotti da qualsiasi area.',
+      icon: Search,
+      box: { top: 16, left: 680, width: 260, height: 48 },
+      card: { top: 78, left: 720 },
+    },
+    {
+      title: 'Azioni rapide',
+      text: 'Con le icone in alto apri notifiche e crei rapidamente un nuovo record nella sezione corrente.',
+      icon: Plus,
+      box: { top: 14, left: 930, width: 130, height: 52 },
+      card: { top: 84, left: 900 },
+    },
+    {
+      title: 'Schede apribili',
+      text: 'Ogni riga o card si apre in editor. Da lì puoi modificare dati, allegati, preview PDF e workflow.',
+      icon: Eye,
+      box: { top: 168, left: 250, width: 980, height: 520 },
+      card: { top: 210, left: 980 },
+    },
+    {
+      title: 'Flusso consigliato',
+      text: 'Parti da lead e sopralluoghi, genera il preventivo, converti in cantiere, poi controlla task, documenti, prodotti e fatture.',
+      icon: Sparkles,
+      box: { top: 150, left: 246, width: 520, height: 110 },
+      card: { top: 286, left: 826 },
+    },
+  ];
+  const T = tk(theme);
+  if (!open) return null;
+  const step = steps[Math.min(stepIndex, steps.length - 1)];
+  const Icon = step.icon;
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 760 : false;
+  return (
+    <>
+      {!isMobile ? <div className="tutorial-highlight" style={{ top: step.box.top, left: step.box.left, width: step.box.width, height: step.box.height }} /> : <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.48)', zIndex: 405 }} />}
+      <motion.div className="tutorial-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={!isMobile ? { top: step.card.top, left: step.card.left } : {}}>
+        <div style={{ background: T.card, color: T.text, border: `1px solid ${T.border}`, borderRadius: 22, boxShadow: '0 28px 60px rgba(15,23,42,.28)', overflow: 'hidden' }}>
+          <div style={{ padding: 16, borderBottom: `1px solid ${T.border}`, background: theme === 'dark' ? 'linear-gradient(180deg, rgba(249,115,22,.12), transparent)' : 'linear-gradient(180deg, rgba(249,115,22,.08), transparent)' }}>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 11px', borderRadius:999, background: theme === 'dark' ? 'rgba(249,115,22,.14)' : COLORS.orangeSoft, color: COLORS.orangeDark, border:'1px solid rgba(249,115,22,.22)', fontSize:12, fontWeight:800 }}><Icon size={14} /> Tutorial rapido</div>
+            <div style={{ marginTop: 12, fontSize: 19, fontWeight: 900, letterSpacing:'-.03em' }}>{step.title}</div>
+            <div style={{ marginTop: 8, fontSize: 14, lineHeight: 1.65, color: T.muted }}>{step.text}</div>
+          </div>
+          <div style={{ padding: 16, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+            <div style={{ fontSize: 12, color: T.muted }}>Passo {stepIndex + 1} di {steps.length}</div>
+            <div style={{ display:'flex', gap:8 }}>
+              <Btn theme={theme} variant="ghost" onClick={onClose}>Salta</Btn>
+              {stepIndex > 0 ? <Btn theme={theme} variant="outline" onClick={() => setStepIndex((s) => Math.max(0, s - 1))}>Indietro</Btn> : null}
+              <Btn theme={theme} icon={stepIndex === steps.length - 1 ? CheckCircle2 : ArrowUpRight} onClick={() => stepIndex === steps.length - 1 ? onClose() : setStepIndex((s) => s + 1)}>{stepIndex === steps.length - 1 ? 'Ho capito' : 'Avanti'}</Btn>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
 function renderPage(page, ctx) {
   switch (page) {
     case 'dashboard': return <DashboardPage {...ctx} />;
@@ -1894,6 +2206,8 @@ export default function App() {
   const [sideOpen, setSideOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [editor, setEditor] = useState({ type: null, record: null });
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
   const { toast, push } = useToast();
 
   const isAdmin = user?.role === 'admin';
@@ -1975,7 +2289,7 @@ export default function App() {
   }, [openRecord, setPage]);
 
   if (!user) {
-    return <><GlobalStyles /><Login onLogin={(u) => { setUser(u); setView(u.role === 'admin' ? 'admin' : 'app'); }} /></>;
+    return <><GlobalStyles /><Login onLogin={(u) => { setUser(u); setView(u.role === 'admin' ? 'admin' : 'app'); if (!localStorage.getItem('cd_tutorial_seen_v1')) { setTutorialStep(0); setTutorialOpen(true); } }} /></>;
   }
 
   if (view === 'admin' && isAdmin) {
@@ -2016,6 +2330,13 @@ export default function App() {
         onSave={(rec) => saveRecord(editor.type, rec)}
         onDelete={(id) => deleteRecord(editor.type, id)}
         settings={db.settings}
+      />
+      <TutorialOverlay
+        theme={theme}
+        open={tutorialOpen}
+        stepIndex={tutorialStep}
+        setStepIndex={setTutorialStep}
+        onClose={() => { localStorage.setItem('cd_tutorial_seen_v1', '1'); setTutorialOpen(false); }}
       />
       <Toast toast={toast} theme={theme} />
     </>
